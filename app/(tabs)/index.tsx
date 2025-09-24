@@ -1,98 +1,220 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  StyleSheet,
+  ScrollView,
+  Image,
+  Dimensions,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import ProductCard from "../../components/ProductCard";
+import { LinearGradient } from "expo-linear-gradient";
+import BannerSection from "../../components/BannerSection";
+import BannerCarousel from "@/components/BannerCarousel";
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+
+
+const { width } = Dimensions.get("window");
+const CARD_WIDTH = (width - 40) / 2; // 2 cards per row with padding
 
 export default function HomeScreen() {
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+    <ScrollView style={styles.container}>
+      {/* Location + Notifications */}
+      <View style={styles.header}>
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <Ionicons name="location-sharp" size={20} color="#fff" />
+          <View>
+            <Text style={styles.locationText}>Current location</Text>
+            <Text style={styles.cityText}>Elamkulam, Kerala</Text>
+          </View>
+        </View>
+        <Ionicons name="notifications-outline" size={24} color="#fff" />
+      </View>
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+      {/* Search Bar */}
+      <View style={styles.searchContainer}>
+        <TextInput
+          placeholder="Search for Tenderloin Cut"
+          placeholderTextColor="#888"
+          style={styles.searchInput}
+        />
+        <Ionicons
+          name="search"
+          size={20}
+          color="#888"
+          style={styles.searchIcon}
+        />
+      </View>
+
+      {/* Banner */}
+      <BannerCarousel />
+
+
+      {/* Premium Cuts */}
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Premium Cuts</Text>
+          <Text style={styles.sectionSub}>Pre-Orders Only</Text>
+        </View>
+
+        <View style={styles.grid}>
+          {["Loin", "Shank", "Brisket", "Chuck"].map((item, index) => (
+            <View key={index} style={styles.categoryBox}>
+              <Image
+                source={require("../../assets/images/categories-demo.png")}
+                style={styles.categoryImg}
+              />
+              <Text style={styles.categoryText}>{item}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
+
+      {/* Instant Deliverables */}
+      <View style={styles.section}>
+        <LinearGradient
+          colors={["#D13635", "#FFFFFF"]}
+          start={{ x: 1, y: 1 }}
+          end={{ x: 0, y: 0 }}
+          style={styles.gradientBackground}
+        >
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Instant Deliverables ⚡</Text>
+          </View>
+
+          <View style={styles.instantGrid}>
+            <View style={styles.instantCard}>
+              <ProductCard
+                name="Beef"
+                price="₹400/kg"
+                rating="4.8"
+                time="30 min"
+                image={require("../../assets/images/instant-pic.png")}
+              />
+            </View>
+            <View style={styles.instantCard}>
+              <ProductCard
+                name="Buffalo Liver"
+                price="₹400/kg"
+                rating="4.8"
+                time="30 min"
+                image={require("../../assets/images/instant-pic.png")}
+              />
+            </View>
+            <View style={styles.instantCard}>
+              <ProductCard
+                name="Buffalo Brain"
+                price="₹400/kg"
+                rating="4.8"
+                time="30 min"
+                image={require("../../assets/images/instant-pic.png")}
+              />
+            </View>
+            <View style={styles.instantCard}>
+              <ProductCard
+                name="Beef Curry Cut"
+                price="₹420/kg"
+                rating="4.9"
+                time="25 min"
+                image={require("../../assets/images/instant-pic.png")}
+              />
+            </View>
+          </View>
+        </LinearGradient>
+      </View>
+
+      {/* Exclusive Collection */}
+      <BannerSection />
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: { flex: 1, backgroundColor: "#fff" },
+  header: {
+    backgroundColor: "#D13635",
+    padding: 15,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
-  stepContainer: {
-    gap: 8,
+  locationText: { fontSize: 12, color: "#fff" },
+  cityText: { fontSize: 16, fontWeight: "bold", color: "#fff" },
+  searchContainer: {
+    position: "relative",
+    backgroundColor: "#D13635",
+    borderBottomLeftRadius: 10,
+    borderBottomRightRadius: 10,
+    padding: 10,
+    justifyContent: "center",
+  },
+  grid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    paddingHorizontal: 15,
+  },
+  categoryBox: {
+    width: "22%",
+    backgroundColor: "#f9f9f9",
+    borderRadius: 8,
+    alignItems: "center",
+    marginBottom: 15,
+    padding: 8,
+  },
+  categoryImg: {
+    width: 60,
+    height: 60,
+    resizeMode: "contain",
     marginBottom: 8,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  categoryText: {
+    fontSize: 14,
+    fontWeight: "500",
   },
+  gradientBackground: {
+    padding: 12,
+  },
+  instantGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    paddingHorizontal: 10,
+  },
+  instantCard: {
+    width: CARD_WIDTH, // 2 per row
+    marginBottom: 15,
+    marginHorizontal: 6, // <-- add this for spacing between cards
+  },
+
+  searchInput: {
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    paddingLeft: 38,
+    paddingRight: 10,
+    color: "#222",
+    height: 56,
+    fontSize: 16,
+  },
+  searchIcon: {
+    position: "absolute",
+    left: 22,
+    top: 18,
+    zIndex: 1,
+    marginTop: 10,
+  },
+  banner: { marginHorizontal: 15, marginBottom: 20, marginTop: 10 },
+  bannerImage: { width: "100%", height: 160, borderRadius: 10 },
+  section: { marginBottom: 20 },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginHorizontal: 15,
+    marginBottom: 10,
+  },
+  sectionTitle: { fontSize: 18, fontWeight: "bold" },
+  sectionSub: { color: "#d62828", fontSize: 12 },
 });
