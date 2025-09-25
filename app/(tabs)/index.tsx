@@ -1,18 +1,20 @@
+import BannerCarousel from "@/components/BannerCarousel";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
 import React from "react";
 import {
-  View,
+  Dimensions,
+  Image,
+  ScrollView,
+  StyleSheet,
   Text,
   TextInput,
-  StyleSheet,
-  ScrollView,
-  Image,
-  Dimensions,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import ProductCard from "../../components/ProductCard";
-import { LinearGradient } from "expo-linear-gradient";
 import BannerSection from "../../components/BannerSection";
-import BannerCarousel from "@/components/BannerCarousel";
+import ProductCard from "../../components/ProductCard";
 
 
 
@@ -20,6 +22,12 @@ const { width } = Dimensions.get("window");
 const CARD_WIDTH = (width - 40) / 2; // 2 cards per row with padding
 
 export default function HomeScreen() {
+  const router = useRouter();
+
+  const handleNotificationPress = () => {
+    router.push('/other/notifications');
+  };
+
   return (
     <ScrollView style={styles.container}>
       {/* Location + Notifications */}
@@ -31,7 +39,9 @@ export default function HomeScreen() {
             <Text style={styles.cityText}>Elamkulam, Kerala</Text>
           </View>
         </View>
-        <Ionicons name="notifications-outline" size={24} color="#fff" />
+        <TouchableOpacity onPress={handleNotificationPress}>
+          <Ionicons name="notifications-outline" size={24} color="#fff" />
+        </TouchableOpacity>
       </View>
 
       {/* Search Bar */}

@@ -1,15 +1,8 @@
-import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+// app/auth/login.tsx
+import CartPage from '@/components/CartPage';
+import React from 'react';
 
-export default function CartScreen() {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.text}>Cart Screen</Text>
-    </View>
-  );
+
+export default function LoginPage() {
+  return <CartPage />;
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#fff" },
-  text: { fontSize: 20, color: "#D13635" },
-});

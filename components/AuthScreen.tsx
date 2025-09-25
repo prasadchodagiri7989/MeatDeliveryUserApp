@@ -1,13 +1,13 @@
+import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
   Image,
-  TouchableOpacity,
+  StyleSheet,
+  Text,
   TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { router } from 'expo-router';
 
 
 const RED_COLOR = '#D13635';
@@ -79,6 +79,7 @@ const AuthScreen: React.FC = () => {
           phone.length === 10 ? styles.activeButton : styles.disabledButton,
         ]}
         disabled={phone.length !== 10}
+        onPress={() => router.push('/auth/otp')}
       >
         <Text style={styles.otpText}>Get OTP</Text>
       </TouchableOpacity>

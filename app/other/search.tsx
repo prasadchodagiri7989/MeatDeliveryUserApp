@@ -1,7 +1,7 @@
 // app/auth/login.tsx
-import CategoriesPage from '@/components/CategoriesPage';
+import SearchScreen from '@/components/SearchScreen';
 import React from 'react';
 
 export default function LoginPage() {
-  return <CategoriesPage />;
+  return <SearchScreen />;
 }

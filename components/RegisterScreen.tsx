@@ -1,13 +1,13 @@
+import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  Image,
-  TouchableOpacity,
-  TextInput,
+    Image,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
-import { router } from 'expo-router';
 
 const RED_COLOR = '#D13635';
 
@@ -76,7 +76,7 @@ const RegisterScreen: React.FC = () => {
       <TouchableOpacity
         style={[styles.registerButton, !isFormValid && styles.disabledButton]}
         disabled={!isFormValid}
-        onPress={() => router.push('/auth/register')}
+        onPress={() => router.push('/auth/otp')}
       >
         <Text style={styles.registerText}>Register</Text>
       </TouchableOpacity>
