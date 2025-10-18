@@ -30,7 +30,7 @@ const RegistrationSuccessScreen: React.FC = () => {
 
       {/* Success Title */}
       <View style={styles.titleSection}>
-        <Text style={styles.successTitle}>Registration Success</Text>
+        <Text style={styles.successTitle}>Welcome!</Text>
       </View>
 
       {/* Subtext */}

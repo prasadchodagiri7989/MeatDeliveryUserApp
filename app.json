@@ -49,7 +49,9 @@
       "router": {},
       "eas": {
         "projectId": "2ba16e37-acef-4bf5-a74b-ab54e880e43e"
-      }
+      },
+      "apiPort": "5000",
+      "apiHost": "localhost"
     }
   }
 }

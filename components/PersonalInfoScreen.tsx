@@ -203,6 +203,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     height: 60,
+    zIndex: 1,
   },
 
   backButton: {
@@ -229,13 +230,15 @@ const styles = StyleSheet.create({
   // Profile Section Styles
   profileSection: {
     alignItems: 'center',
-    marginTop: -30, // Overlap with header
+    marginTop: 10, // Overlap with header
     marginBottom: 40,
-    zIndex: 1,
+    zIndex: 10,
+    position: 'relative',
   },
 
   profileImageContainer: {
     position: 'relative',
+    zIndex: 10,
   },
 
   profileImage: {
@@ -251,6 +254,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 8,
+    zIndex: 10,
   },
 
   editIconContainer: {
@@ -272,7 +276,8 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 4,
+    elevation: 12,
+    zIndex: 15,
   },
 
   // Form Section Styles

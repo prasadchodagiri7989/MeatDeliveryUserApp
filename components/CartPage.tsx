@@ -1,90 +1,23 @@
 import { AntDesign, Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-    Alert,
-    Image,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  Image,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
+import { Cart, CartItem, cartService } from '../services/cartService';
+import { Product, productService } from '../services/productService';
 
 const RED_COLOR = '#D13635';
 const LIGHT_GRAY = '#f5f5f5';
 const GREEN_COLOR = '#4CAF50';
-
-// Sample cart data
-const cartItems = [
-  {
-    id: '1',
-    name: 'Beef Tenderloin',
-    image: require('../assets/images/instant-pic.png'),
-    currentPrice: 600,
-    originalPrice: 650,
-    deliveryTime: '30 minutes',
-    quantity: 1,
-    isInstant: true,
-  },
-  {
-    id: '2',
-    name: 'Chicken Breast',
-    image: require('../assets/images/instant-pic.png'),
-    currentPrice: 300,
-    originalPrice: 320,
-    deliveryTime: '45 minutes',
-    quantity: 2,
-    isInstant: false,
-  },
-  {
-    id: '3',
-    name: 'Mutton Chops',
-    image: require('../assets/images/instant-pic.png'),
-    currentPrice: 650,
-    originalPrice: 700,
-    deliveryTime: '60 minutes',
-    quantity: 1,
-    isInstant: false,
-  },
-];
-
-// Sample suggested products
-const suggestedProducts = [
-  {
-    id: '101',
-    name: 'Beef (With Bone)',
-    price: '₹400/kg',
-    rating: 4.8,
-    deliveryTime: '30 min',
-    image: require('../assets/images/instant-pic.png'),
-  },
-  {
-    id: '102',
-    name: 'Pork Ribs',
-    price: '₹450/kg',
-    rating: 4.7,
-    deliveryTime: '40 min',
-    image: require('../assets/images/instant-pic.png'),
-  },
-  {
-    id: '103',
-    name: 'Fish Fillet',
-    price: '₹500/kg',
-    rating: 4.6,
-    deliveryTime: '25 min',
-    image: require('../assets/images/instant-pic.png'),
-  },
-  {
-    id: '104',
-    name: 'Lamb Curry Cut',
-    price: '₹580/kg',
-    rating: 4.9,
-    deliveryTime: '50 min',
-    image: require('../assets/images/instant-pic.png'),
-  },
-];
 
 // Header Component
 const CartHeader: React.FC = () => (
@@ -116,23 +49,35 @@ const DeliveryLocation: React.FC = () => {
 };
 
 // Cart Item Card Component
-const CartItemCard: React.FC<{ item: any; onUpdateQuantity: (id: string, quantity: number) => void; onRemove: (id: string) => void }> = ({ 
+const CartItemCard: React.FC<{ 
+  item: CartItem; 
+  onUpdateQuantity: (itemId: string, quantity: number) => void; 
+  onRemove: (itemId: string) => void 
+}> = ({ 
   item, 
   onUpdateQuantity, 
   onRemove 
 }) => {
   const increaseQuantity = () => {
-    onUpdateQuantity(item.id, item.quantity + 1);
+    onUpdateQuantity(item._id, item.quantity + 1);
   };
 
   const decreaseQuantity = () => {
     if (item.quantity > 1) {
-      onUpdateQuantity(item.id, item.quantity - 1);
+      onUpdateQuantity(item._id, item.quantity - 1);
     }
   };
 
   const handleRemove = () => {
-    onRemove(item.id);
+    onRemove(item._id);
+  };
+
+  // Get image source - use backend image URL or fallback to local
+  const getImageSource = () => {
+    if (item.product.image && item.product.image.startsWith('http')) {
+      return { uri: item.product.image };
+    }
+    return require('../assets/images/instant-pic.png'); // fallback image
   };
 
   return (
@@ -142,12 +87,12 @@ const CartItemCard: React.FC<{ item: any; onUpdateQuantity: (id: string, quantit
       </TouchableOpacity>
       
       <View style={styles.cartItemContent}>
-        <Image source={item.image} style={styles.cartItemImage} />
+        <Image source={getImageSource()} style={styles.cartItemImage} />
         
         <View style={styles.cartItemInfo}>
           <View style={styles.cartItemHeader}>
-            <Text style={styles.cartItemName}>{item.name}</Text>
-            {item.isInstant && (
+            <Text style={styles.cartItemName}>{item.product.name}</Text>
+            {item.product.deliveryTime === '30 min' && (
               <View style={styles.instantBadge}>
                 <Text style={styles.instantText}>Instant order</Text>
               </View>
@@ -155,12 +100,14 @@ const CartItemCard: React.FC<{ item: any; onUpdateQuantity: (id: string, quantit
           </View>
           
           <View style={styles.priceContainer}>
-            <Text style={styles.currentPrice}>₹{item.currentPrice}/kg</Text>
-            <Text style={styles.originalPrice}>₹{item.originalPrice}/kg</Text>
+            <Text style={styles.currentPrice}>₹{item.priceAtTime}/kg</Text>
+            {item.product.discountedPrice && item.product.discountedPrice < item.product.price && (
+              <Text style={styles.originalPrice}>₹{item.product.price}/kg</Text>
+            )}
           </View>
           
           <Text style={styles.deliveryInfo}>
-            Will be delivered in {item.deliveryTime}
+            Will be delivered in {item.product.deliveryTime}
           </Text>
           
           <View style={styles.quantityController}>
@@ -187,15 +134,26 @@ const CartItemCard: React.FC<{ item: any; onUpdateQuantity: (id: string, quantit
 };
 
 // Product Card Component for Suggestions
-const ProductCard: React.FC<{ item: any }> = ({ item }) => {
+const ProductCard: React.FC<{ 
+  item: Product;
+  onAddToCart: (productId: string) => void;
+}> = ({ item, onAddToCart }) => {
   const handleAddProduct = () => {
-    Alert.alert('Added to Cart', `${item.name} added to cart`);
+    onAddToCart(item._id);
+  };
+
+  // Get image source - use backend image URL or fallback to local
+  const getImageSource = () => {
+    if (item.image && item.image.startsWith('http')) {
+      return { uri: item.image };
+    }
+    return require('../assets/images/instant-pic.png'); // fallback image
   };
 
   return (
     <View style={styles.productCard}>
       <View style={styles.productImageContainer}>
-        <Image source={item.image} style={styles.productImage} />
+        <Image source={getImageSource()} style={styles.productImage} />
         <TouchableOpacity style={styles.addButton} onPress={handleAddProduct}>
           <AntDesign name="plus" size={16} color="white" />
         </TouchableOpacity>
@@ -203,7 +161,9 @@ const ProductCard: React.FC<{ item: any }> = ({ item }) => {
       
       <View style={styles.productInfo}>
         <Text style={styles.productName} numberOfLines={1}>{item.name}</Text>
-        <Text style={styles.productPrice}>{item.price}</Text>
+        <Text style={styles.productPrice}>
+          ₹{item.discountedPrice || item.price}/kg
+        </Text>
         
         <View style={styles.productDetails}>
           <View style={styles.ratingContainer}>
@@ -222,10 +182,10 @@ const ProductCard: React.FC<{ item: any }> = ({ item }) => {
 };
 
 // Coupon and Summary Component
-const CouponAndSummary: React.FC<{ cartItems: any[] }> = ({ cartItems }) => {
+const CouponAndSummary: React.FC<{ cartItems: CartItem[] }> = ({ cartItems }) => {
   const [couponCode, setCouponCode] = useState('');
   
-  const subTotal = cartItems.reduce((sum, item) => sum + (item.currentPrice * item.quantity), 0);
+  const subTotal = cartItems.reduce((sum, item) => sum + (item.priceAtTime * item.quantity), 0);
   const total = subTotal; // Add delivery charges, taxes etc here if needed
   
   const handleCheckCoupon = () => {
@@ -266,24 +226,95 @@ const CouponAndSummary: React.FC<{ cartItems: any[] }> = ({ cartItems }) => {
 
 // Main Cart Page Component
 const CartPage: React.FC = () => {
-  const [items, setItems] = useState(cartItems);
+  const [cart, setCart] = useState<Cart | null>(null);
+  const [suggestedProducts, setSuggestedProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false);
 
-  const updateQuantity = (id: string, quantity: number) => {
-    setItems(prevItems => 
-      prevItems.map(item => 
-        item.id === id ? { ...item, quantity } : item
-      )
-    );
+  // Load cart data on component mount
+  useEffect(() => {
+    loadCartData();
+    loadSuggestedProducts();
+  }, []);
+
+  const loadCartData = async () => {
+    try {
+      setLoading(true);
+      const cartData = await cartService.getCart();
+      setCart(cartData);
+    } catch (error) {
+      console.error('Error loading cart:', error);
+      Alert.alert('Error', 'Failed to load cart data');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const removeItem = (id: string) => {
-    setItems(prevItems => prevItems.filter(item => item.id !== id));
+  const loadSuggestedProducts = async () => {
+    try {
+      const products = await productService.getSuggestedProducts(4);
+      setSuggestedProducts(products);
+    } catch (error) {
+      console.error('Error loading suggested products:', error);
+    }
+  };
+
+  const updateQuantity = async (itemId: string, quantity: number) => {
+    try {
+      setUpdating(true);
+      const updatedCart = await cartService.updateCartItem(itemId, quantity);
+      setCart(updatedCart);
+    } catch (error) {
+      console.error('Error updating quantity:', error);
+      Alert.alert('Error', 'Failed to update quantity');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const removeItem = async (itemId: string) => {
+    try {
+      setUpdating(true);
+      const updatedCart = await cartService.removeFromCart(itemId);
+      setCart(updatedCart);
+    } catch (error) {
+      console.error('Error removing item:', error);
+      Alert.alert('Error', 'Failed to remove item');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const addToCart = async (productId: string) => {
+    try {
+      setUpdating(true);
+      const updatedCart = await cartService.addToCart(productId, 1);
+      setCart(updatedCart);
+      Alert.alert('Success', 'Product added to cart');
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      Alert.alert('Error', 'Failed to add product to cart');
+    } finally {
+      setUpdating(false);
+    }
   };
 
   const handleProceed = () => {
-    const total = items.reduce((sum, item) => sum + (item.currentPrice * item.quantity), 0);
-    Alert.alert('Proceed', `Proceeding to checkout with total: ₹${total}`);
+    if (cart && cart.totalAmount > 0) {
+      Alert.alert('Proceed', `Proceeding to checkout with total: ₹${cart.totalAmount}`);
+    }
   };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={[styles.container, styles.loadingContainer]}>
+          <ActivityIndicator size="large" color={RED_COLOR} />
+          <Text style={styles.loadingText}>Loading cart...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -300,14 +331,20 @@ const CartPage: React.FC = () => {
       >
         {/* Cart Items */}
         <View style={styles.cartItemsSection}>
-          {items.map(item => (
+          {cart?.items.map(item => (
             <CartItemCard
-              key={item.id}
+              key={item._id}
               item={item}
               onUpdateQuantity={updateQuantity}
               onRemove={removeItem}
             />
           ))}
+          
+          {(!cart || cart.items.length === 0) && (
+            <View style={styles.emptyCart}>
+              <Text style={styles.emptyCartText}>Your cart is empty</Text>
+            </View>
+          )}
         </View>
         
         {/* Suggested Products */}
@@ -319,18 +356,32 @@ const CartPage: React.FC = () => {
             contentContainerStyle={styles.suggestedContainer}
           >
             {suggestedProducts.map(product => (
-              <ProductCard key={product.id} item={product} />
+              <ProductCard 
+                key={product._id} 
+                item={product} 
+                onAddToCart={addToCart}
+              />
             ))}
           </ScrollView>
         </View>
         
         {/* Coupon and Summary */}
-        <CouponAndSummary cartItems={items} />
+        {cart && cart.items.length > 0 && (
+          <CouponAndSummary cartItems={cart.items} />
+        )}
         
         {/* Proceed Button */}
-        <TouchableOpacity style={styles.proceedButton} onPress={handleProceed}>
-          <Text style={styles.proceedButtonText}>Proceed</Text>
-        </TouchableOpacity>
+        {cart && cart.items.length > 0 && (
+          <TouchableOpacity 
+            style={styles.proceedButton} 
+            onPress={handleProceed}
+            disabled={updating}
+          >
+            <Text style={styles.proceedButtonText}>
+              {updating ? 'Updating...' : 'Proceed'}
+            </Text>
+          </TouchableOpacity>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -715,6 +766,30 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+
+  // Loading Styles
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  loadingText: {
+    fontSize: 16,
+    color: '#666',
+    marginTop: 10,
+  },
+
+  // Empty Cart Styles
+  emptyCart: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+
+  emptyCartText: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
   },
 });
 

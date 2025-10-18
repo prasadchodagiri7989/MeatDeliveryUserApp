@@ -1,25 +1,62 @@
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  Image,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Image,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
+import { authService } from '../services/authService';
 
 
 const RED_COLOR = '#D13635';
 
 const AuthScreen: React.FC = () => {
   const [phone, setPhone] = useState('');
+  const [loading, setLoading] = useState(false);
 
   // Ensure only 10 digits max
   const handlePhoneChange = (text: string) => {
     const numericText = text.replace(/[^0-9]/g, ''); // only numbers
     if (numericText.length <= 10) {
       setPhone(numericText);
+    }
+  };
+
+  // Request OTP from backend
+  const handleGetOTP = async () => {
+    if (phone.length !== 10) {
+      Alert.alert('Error', 'Please enter a valid 10-digit phone number');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      // Format phone number with country code
+      const formattedPhone = `+91${phone}`;
+      
+      const response = await authService.requestOTP({ phone: formattedPhone });
+      
+      if (response.success) {
+        // Navigate directly to OTP verification screen with phone number
+        router.push({
+          pathname: '/auth/otp',
+          params: { phone: formattedPhone }
+        });
+      }
+    } catch (error: any) {
+      console.error('OTP request error:', error);
+      Alert.alert(
+        'Error',
+        error.message || 'Failed to send OTP. Please try again.'
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -76,12 +113,16 @@ const AuthScreen: React.FC = () => {
       <TouchableOpacity
         style={[
           styles.otpButton,
-          phone.length === 10 ? styles.activeButton : styles.disabledButton,
+          (phone.length === 10 && !loading) ? styles.activeButton : styles.disabledButton,
         ]}
-        disabled={phone.length !== 10}
-        onPress={() => router.push('/auth/otp')}
+        disabled={phone.length !== 10 || loading}
+        onPress={handleGetOTP}
       >
-        <Text style={styles.otpText}>Get OTP</Text>
+        {loading ? (
+          <ActivityIndicator color="#fff" size="small" />
+        ) : (
+          <Text style={styles.otpText}>Get OTP</Text>
+        )}
       </TouchableOpacity>
     </View>
   );
