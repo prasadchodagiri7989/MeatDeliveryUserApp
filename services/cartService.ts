@@ -32,7 +32,12 @@ const apiCall = async (endpoint: string, options: RequestInit = {}): Promise<any
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.message || 'Something went wrong');
+      // Extract specific error message from backend response
+      const errorMessage = data.message || data.error || 'Something went wrong';
+      const error = new Error(errorMessage);
+      (error as any).status = response.status;
+      (error as any).data = data;
+      throw error;
     }
 
     return data;
@@ -46,19 +51,51 @@ export interface CartItem {
   _id: string;
   product: {
     _id: string;
+    id: string;
     name: string;
+    description: string;
+    category: string;
+    subcategory?: string;
     price: number;
     discountedPrice?: number;
-    image: string;
-    deliveryTime: string;
-    category: string;
+    image?: string; // Legacy support
+    images?: {
+      url: string;
+      alt: string;
+      _id: string;
+    }[];
+    weight?: {
+      value: number;
+      unit: string;
+    };
     availability: {
       inStock: boolean;
       quantity: number;
     };
-  };
+    discount?: {
+      percentage: number;
+    };
+    ratings?: {
+      average: number;
+      count: number;
+    };
+    preparationMethod?: string;
+    tags?: string[];
+    isActive: boolean;
+    deliveryTime?: string;
+    createdAt?: string;
+    updatedAt?: string;
+  } | null;
   quantity: number;
   priceAtTime: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface AppliedCoupon {
+  code: string;
+  discount: number;
+  appliedAt: string;
 }
 
 export interface Cart {
@@ -67,7 +104,11 @@ export interface Cart {
   items: CartItem[];
   totalItems: number;
   totalAmount: number;
+  subtotal?: number;
+  discountAmount?: number;
+  finalAmount?: number;
   formattedTotal: string;
+  appliedCoupon?: AppliedCoupon;
   createdAt: string;
   updatedAt: string;
 }
@@ -125,6 +166,34 @@ export const cartService = {
       method: 'DELETE',
     });
     return response.data;
+  },
+
+  // Apply coupon to cart
+  applyCoupon: async (code: string): Promise<Cart> => {
+    const response = await apiCall('/cart/apply-coupon', {
+      method: 'POST',
+      body: JSON.stringify({ code: code.toUpperCase() }),
+    });
+    return response.data;
+  },
+
+  // Remove coupon from cart
+  removeCoupon: async (): Promise<Cart> => {
+    try {
+      const response = await apiCall('/cart/remove-coupon', {
+        method: 'DELETE',
+      });
+      return response.data;
+    } catch (error: any) {
+      // Handle the specific toFixed error that occurs in the backend
+      if (error.message && error.message.includes('toFixed')) {
+        // If this error occurs, the coupon was likely removed but there's a formatting issue
+        // Fetch the cart again to get the updated state
+        const cartResponse = await apiCall('/cart');
+        return cartResponse.data;
+      }
+      throw error;
+    }
   },
 
   // Get cart summary

@@ -155,7 +155,7 @@ const OTPVerificationScreen: React.FC = () => {
             console.log('User and token found, updating auth context');
             
             // Update auth context with user data  
-            login(user, token);
+            await login(user, token);
             
             // Navigate to success page immediately
             console.log('Navigating to success page...');

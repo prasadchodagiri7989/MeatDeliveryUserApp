@@ -1,17 +1,18 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  Image,
-  StyleSheet,
-  SafeAreaView,
-  ScrollView,
-  FlatList,
-  Alert,
-} from 'react-native';
 import { AntDesign } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  FlatList,
+  Image,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { Order, orderService } from '../services/orderService';
 
 // Color constants
 const PRIMARY_RED = '#D32F2F';
@@ -21,80 +22,38 @@ const LIGHT_GRAY = '#F5F5F5';
 const DARK_GRAY = '#333';
 const LIGHT_PINK = '#FFF1F1';
 
-// Order status type
-type OrderStatus = 'delivered' | 'cancelled' | 'pending';
-
-// Order interface
-interface Order {
-  id: string;
-  orderId: string;
-  date: string;
-  title: string;
-  quantity: number;
-  status: OrderStatus;
-  statusText: string;
-  image: any;
-}
-
-// Mock orders data
-const mockOrders: Order[] = [
-  {
-    id: '1',
-    orderId: 'SAF-2025-001',
-    date: '05/12/2025',
-    title: 'Long Loin & More',
-    quantity: 3,
-    status: 'delivered',
-    statusText: 'Delivered',
-    image: require('../assets/images/instant-pic.png'),
-  },
-  {
-    id: '2',
-    orderId: 'SAF-2025-002',
-    date: '03/12/2025',
-    title: 'Premium Beef Cuts',
-    quantity: 2,
-    status: 'cancelled',
-    statusText: 'Cancelled',
-    image: require('../assets/images/categories-demo.png'),
-  },
-  {
-    id: '3',
-    orderId: 'SAF-2025-003',
-    date: '01/12/2025',
-    title: 'Fresh Buffalo Meat',
-    quantity: 5,
-    status: 'pending',
-    statusText: 'Delivered by 15 Feb',
-    image: require('../assets/images/instant-pic.png'),
-  },
-  {
-    id: '4',
-    orderId: 'SAF-2025-004',
-    date: '28/11/2025',
-    title: 'Organic Chicken',
-    quantity: 1,
-    status: 'delivered',
-    statusText: 'Delivered',
-    image: require('../assets/images/categories-demo.png'),
-  },
-  {
-    id: '5',
-    orderId: 'SAF-2025-005',
-    date: '25/11/2025',
-    title: 'Mutton Special Cut',
-    quantity: 4,
-    status: 'pending',
-    statusText: 'Delivered by 20 Feb',
-    image: require('../assets/images/instant-pic.png'),
-  },
-];
-
 const MyOrdersScreen: React.FC = () => {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<string>('All');
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   const tabs = ['All', 'Instant Orders', 'Premium Cuts'];
+
+  // Load orders from API
+  useEffect(() => {
+    loadOrders();
+  }, []);
+
+  const loadOrders = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await orderService.getUserOrders();
+      
+      if (response.success && response.data?.data) {
+        setOrders(response.data.data);
+      } else {
+        setError('Failed to load orders');
+      }
+    } catch (err) {
+      console.error('Error loading orders:', err);
+      setError('Failed to load orders. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Handle back navigation
   const handleBack = () => {
@@ -102,13 +61,16 @@ const MyOrdersScreen: React.FC = () => {
   };
 
   // Handle order details
-  const handleOrderDetails = (orderId: string) => {
-    Alert.alert('Order Details', `Viewing details for ${orderId}`);
+  const handleOrderDetails = (order: Order) => {
+    router.push({
+      pathname: '/order-details',
+      params: { orderData: JSON.stringify(order) }
+    });
   };
 
   // Get status color
-  const getStatusColor = (status: OrderStatus): string => {
-    switch (status) {
+  const getStatusColor = (status: string): string => {
+    switch (status.toLowerCase()) {
       case 'delivered':
         return GREEN_COLOR;
       case 'cancelled':
@@ -120,15 +82,69 @@ const MyOrdersScreen: React.FC = () => {
     }
   };
 
+  // Get status text
+  const getStatusText = (status: string): string => {
+    switch (status.toLowerCase()) {
+      case 'delivered':
+        return 'Delivered';
+      case 'cancelled':
+        return 'Cancelled';
+      case 'pending':
+        return 'Order Placed';
+      default:
+        return status;
+    }
+  };
+
+  // Get formatted date
+  const formatDate = (dateString: string): string => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+  };
+
+  // Get order title (first product name or summary)
+  const getOrderTitle = (order: Order): string => {
+    if (order.items.length === 0) return 'No items';
+    if (order.items.length === 1) return order.items[0].product.name;
+    return `${order.items[0].product.name} & ${order.items.length - 1} more`;
+  };
+
+  // Get total quantity
+  const getTotalQuantity = (order: Order): number => {
+    return order.items.reduce((total, item) => total + item.quantity, 0);
+  };
+
+  // Get product image
+  const getProductImage = (order: Order) => {
+    if (order.items.length > 0 && order.items[0].product.images.length > 0) {
+      return { uri: order.items[0].product.images[0].url };
+    }
+    return require('../assets/images/instant-pic.png'); // Fallback image
+  };
+
   // Filter orders based on active tab
   const getFilteredOrders = (): Order[] => {
     switch (activeTab) {
       case 'Instant Orders':
-        return mockOrders.filter(order => order.title.toLowerCase().includes('fresh') || order.title.toLowerCase().includes('organic'));
+        return orders.filter(order => 
+          order.items.some(item => 
+            item.product.tags.includes('instant') || 
+            item.product.preparationMethod === 'instant'
+          )
+        );
       case 'Premium Cuts':
-        return mockOrders.filter(order => order.title.toLowerCase().includes('premium') || order.title.toLowerCase().includes('loin'));
+        return orders.filter(order => 
+          order.items.some(item => 
+            item.product.name.toLowerCase().includes('premium') || 
+            item.product.subcategory.toLowerCase().includes('premium')
+          )
+        );
       default:
-        return mockOrders;
+        return orders;
     }
   };
 
@@ -137,28 +153,28 @@ const MyOrdersScreen: React.FC = () => {
     <View style={styles.orderCard}>
       {/* Order ID and Date Row */}
       <View style={styles.orderHeader}>
-        <Text style={styles.orderId}>Order ID = {item.orderId}</Text>
-        <Text style={styles.orderDate}>{item.date}</Text>
+        <Text style={styles.orderId}>Order ID = {item.orderNumber}</Text>
+        <Text style={styles.orderDate}>{formatDate(item.createdAt)}</Text>
       </View>
 
       {/* Product Details Row */}
       <View style={styles.orderContent}>
         {/* Product Image */}
-        <Image source={item.image} style={styles.productImage} resizeMode="cover" />
+        <Image source={getProductImage(item)} style={styles.productImage} resizeMode="cover" />
 
         {/* Product Info */}
         <View style={styles.productInfo}>
-          <Text style={styles.productTitle}>{item.title}</Text>
-          <Text style={styles.productQuantity}>Quantity - {item.quantity}</Text>
+          <Text style={styles.productTitle}>{getOrderTitle(item)}</Text>
+          <Text style={styles.productQuantity}>Quantity - {getTotalQuantity(item)}</Text>
           <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
-            {item.statusText}
+            {getStatusText(item.status)}
           </Text>
         </View>
 
         {/* Details Button */}
         <TouchableOpacity
           style={styles.detailsButton}
-          onPress={() => handleOrderDetails(item.orderId)}
+          onPress={() => handleOrderDetails(item)}
         >
           <Text style={styles.detailsButtonText}>Details</Text>
         </TouchableOpacity>
@@ -210,19 +226,33 @@ const MyOrdersScreen: React.FC = () => {
       </View>
 
       {/* Orders List */}
-      <FlatList
-        data={getFilteredOrders()}
-        renderItem={renderOrderCard}
-        keyExtractor={(item) => item.id}
-        style={styles.ordersList}
-        contentContainerStyle={styles.ordersListContainer}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No orders found for &quot;{activeTab}&quot;</Text>
-          </View>
-        }
-      />
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={PRIMARY_RED} />
+          <Text style={styles.loadingText}>Loading your orders...</Text>
+        </View>
+      ) : error ? (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={loadOrders}>
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <FlatList
+          data={getFilteredOrders()}
+          renderItem={renderOrderCard}
+          keyExtractor={(item) => item._id}
+          style={styles.ordersList}
+          contentContainerStyle={styles.ordersListContainer}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No orders found for &quot;{activeTab}&quot;</Text>
+            </View>
+          }
+        />
+      )}
     </SafeAreaView>
   );
 };
@@ -396,6 +426,50 @@ const styles = StyleSheet.create({
   detailsButtonText: {
     color: 'white',
     fontSize: 14,
+    fontWeight: '500',
+  },
+
+  // Loading State Styles
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+
+  loadingText: {
+    fontSize: 16,
+    color: '#888',
+    marginTop: 12,
+    textAlign: 'center',
+  },
+
+  // Error State Styles
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+    paddingHorizontal: 20,
+  },
+
+  errorText: {
+    fontSize: 16,
+    color: PRIMARY_RED,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+
+  retryButton: {
+    backgroundColor: PRIMARY_RED,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+
+  retryButtonText: {
+    color: 'white',
+    fontSize: 16,
     fontWeight: '500',
   },
 

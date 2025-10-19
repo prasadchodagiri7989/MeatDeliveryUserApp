@@ -1,5 +1,15 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 import { authService } from '../services/authService';
+
+// Address interface for structured address
+interface Address {
+  street?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  country?: string;
+}
 
 // User interface
 export interface User {
@@ -8,7 +18,9 @@ export interface User {
   lastName: string;
   email: string;
   phone: string;
-  address?: string;
+  address?: string | Address;
+  city?: string;
+  zipCode?: string;
   role: string;
   isActive: boolean;
   phoneVerified: boolean;
@@ -20,9 +32,10 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (userData: User, token: string) => void;
+  login: (userData: User, token: string) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (userData: Partial<User>) => void;
+  updateUserProfile: (userData: any) => Promise<void>;
   checkAuthStatus: () => Promise<void>;
 }
 
@@ -49,15 +62,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const isAuth = await authService.isAuthenticated();
       
       if (isAuth) {
-        // Try to get user profile
+        // Try to get user data from AsyncStorage first
         try {
-          const response = await authService.getMe();
-          if (response.success) {
-            setUser(response.data.user);
+          const userData = await AsyncStorage.getItem('userData');
+          if (userData) {
+            setUser(JSON.parse(userData));
+          } else {
+            // Fallback: get user profile from API
+            const response = await authService.getMe();
+            if (response.success) {
+              const user = response.data?.user || (response as any).user;
+              if (user) {
+                setUser(user);
+                // Save to AsyncStorage for next time
+                await AsyncStorage.setItem('userData', JSON.stringify(user));
+              }
+            }
           }
         } catch (error) {
-          console.error('Failed to get user profile:', error);
-          // If profile fetch fails, logout
+          console.error('Failed to get user data:', error);
+          // If both storage and API fail, logout
           await authService.logout();
         }
       }
@@ -68,15 +92,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const login = (userData: User, token: string) => {
-    // Token is already saved by authService.verifyOTP method
-    // Just set the user data in context
-    setUser(userData);
+  const login = async (userData: User, token: string) => {
+    try {
+      // Save user data in AsyncStorage
+      await AsyncStorage.setItem('userData', JSON.stringify(userData));
+      
+      // Token is already saved by authService.verifyOTP method
+      // Set the user data in context
+      setUser(userData);
+    } catch (error) {
+      console.error('Error saving user data:', error);
+      // Still set user data even if storage fails
+      setUser(userData);
+    }
   };
 
   const logout = async () => {
     try {
       await authService.logout();
+      // Clear user data from AsyncStorage
+      await AsyncStorage.removeItem('userData');
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
@@ -90,6 +125,34 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const updateUserProfile = async (userData: any) => {
+    try {
+      // Update the user profile on the backend
+      const response = await authService.updateProfile(userData);
+      
+      if (response.success) {
+        // Get the updated user data from response
+        const updatedUserData = response.data?.user || (response as any).user;
+        
+        if (updatedUserData) {
+          setUser(updatedUserData);
+          // Save updated user data to AsyncStorage
+          await AsyncStorage.setItem('userData', JSON.stringify(updatedUserData));
+        } else {
+          // If no user data in response, update local state with provided data
+          const updatedUser = { ...user, ...userData } as User;
+          setUser(updatedUser);
+          await AsyncStorage.setItem('userData', JSON.stringify(updatedUser));
+        }
+      } else {
+        throw new Error(response.message || 'Failed to update profile');
+      }
+    } catch (error) {
+      console.error('Error updating user profile:', error);
+      throw error;
+    }
+  };
+
   const value: AuthContextType = {
     user,
     isAuthenticated: !!user,
@@ -97,6 +160,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     login,
     logout,
     updateUser,
+    updateUserProfile,
     checkAuthStatus,
   };
 

@@ -1,12 +1,14 @@
+import Constants from 'expo-constants';
+
 // API Configuration
 // Configuration for different environments
 const CONFIG = {
   development: {
-    API_HOST: 'localhost',
-    API_PORT: '5000',
+    API_HOST: Constants.expoConfig?.extra?.apiHost || 'localhost',
+    API_PORT: Constants.expoConfig?.extra?.apiPort || '5000',
   },
   production: {
-    API_HOST: 'your-production-domain.com',
+    API_HOST: Constants.expoConfig?.extra?.productionApiHost || 'meat-delivery-backend-bowm.vercel.app',
     API_PORT: '443',
   },
 };
@@ -18,7 +20,7 @@ const currentConfig = isDevelopment ? CONFIG.development : CONFIG.production;
 // Build API URL
 const API_URL = isDevelopment 
   ? `http://${currentConfig.API_HOST}:${currentConfig.API_PORT}/api`
-  : `https://${currentConfig.API_HOST}/api`;
+  : Constants.expoConfig?.extra?.productionApiUrl || `https://${currentConfig.API_HOST}/api`;
 
 export const API_CONFIG = {
   // API Base URL based on environment
@@ -75,7 +77,7 @@ export const ENV = {
     HOST: CONFIG.development.API_HOST,
   },
   production: {
-    API_URL: `https://${CONFIG.production.API_HOST}/api`,
+    API_URL: Constants.expoConfig?.extra?.productionApiUrl || `https://${CONFIG.production.API_HOST}/api`,
     DEBUG: false,
     PORT: CONFIG.production.API_PORT,
     HOST: CONFIG.production.API_HOST,

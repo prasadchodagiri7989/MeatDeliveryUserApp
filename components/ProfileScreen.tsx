@@ -1,15 +1,18 @@
 import { AntDesign, Feather, Ionicons } from '@expo/vector-icons';
-import React from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
-    Alert,
-    Image,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  Alert,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
+import { useAuth } from '../contexts/AuthContext';
+import { addressService } from '../services/addressService';
+import { orderService } from '../services/orderService';
 
 const RED_COLOR = '#D13635';
 const LIGHT_GRAY = '#f5f5f5';
@@ -30,48 +33,30 @@ const profileMenuData = [
   },
   {
     id: '3',
-    iconName: 'heart',
-    title: 'Favorites',
-    iconType: 'feather',
-  },
-  {
-    id: '4',
-    iconName: 'credit-card',
-    title: 'Payment Methods',
-    iconType: 'feather',
-  },
-  {
-    id: '5',
     iconName: 'bell',
     title: 'Notifications',
     iconType: 'feather',
   },
   {
-    id: '6',
+    id: '4',
     iconName: 'headphones',
     title: 'Customer Support',
     iconType: 'feather',
   },
   {
-    id: '7',
-    iconName: 'settings',
-    title: 'Settings',
-    iconType: 'feather',
-  },
-  {
-    id: '8',
+    id: '5',
     iconName: 'help-circle',
     title: 'Help & FAQ',
     iconType: 'feather',
   },
   {
-    id: '9',
+    id: '6',
     iconName: 'info',
     title: 'About Us',
     iconType: 'feather',
   },
   {
-    id: '10',
+    id: '7',
     iconName: 'log-out',
     title: 'Logout',
     iconType: 'feather',
@@ -81,11 +66,11 @@ const profileMenuData = [
 // ProfileHeader Component
 const ProfileHeader: React.FC = () => {
   const handleBack = () => {
-    Alert.alert('Back', 'Going back to previous screen');
+    router.back();
   };
 
   const handleEdit = () => {
-    Alert.alert('Edit Profile', 'Edit profile functionality');
+    router.push('/edit-profile');
   };
 
   return (
@@ -105,31 +90,50 @@ const ProfileHeader: React.FC = () => {
 
 // ProfileCard Component
 const ProfileCard: React.FC = () => {
-  const handleProfileImagePress = () => {
-    Alert.alert('Profile Image', 'Change profile picture functionality');
+  const { user } = useAuth();
+  
+  // Generate user initials from first and last name
+  const getUserInitials = () => {
+    if (!user || !user.firstName || !user.lastName) return 'GU';
+    return `${user.firstName.charAt(0).toUpperCase()}${user.lastName.charAt(0).toUpperCase()}`;
+  };
+
+  // Format address display
+  const getUserAddress = () => {
+    if (!user?.address) return 'No address available';
+    
+    if (typeof user.address === 'string') {
+      return user.address;
+    }
+    
+    // If address is an object, format it nicely
+    const { street, city, state, zipCode } = user.address;
+    const addressParts = [street, city, state, zipCode].filter(Boolean);
+    return addressParts.length > 0 ? addressParts.join(', ') : 'No address available';
   };
 
   return (
     <View style={styles.profileCard}>
-      <TouchableOpacity onPress={handleProfileImagePress} style={styles.profileImageContainer}>
-        <Image 
-          source={require('../assets/images/sejas-logo.png')} 
-          style={styles.profileImage} 
-        />
-        <View style={styles.cameraIcon}>
-          <Ionicons name="camera" size={16} color="white" />
+      <View style={styles.profileImageContainer}>
+        <View style={styles.profileInitials}>
+          <Text style={styles.initialsText}>{getUserInitials()}</Text>
         </View>
-      </TouchableOpacity>
+      </View>
       
       <View style={styles.profileInfo}>
-        <Text style={styles.profileName}>John Doe</Text>
-        <Text style={styles.profileEmail}>john.doe@example.com</Text>
-        <Text style={styles.profilePhone}>+91 9876543210</Text>
+        <Text style={styles.profileName}>
+          {user ? `${user.firstName} ${user.lastName}` : 'Guest User'}
+        </Text>
+        <Text style={styles.profileEmail}>
+          {user?.email || 'No email available'}
+        </Text>
+        <Text style={styles.profilePhone}>
+          {user?.phone || 'No phone available'}
+        </Text>
+        <Text style={styles.profileAddress}>
+          {getUserAddress()}
+        </Text>
         
-        <View style={styles.membershipBadge}>
-          <Ionicons name="star" size={16} color="#FFD700" />
-          <Text style={styles.membershipText}>Premium Member</Text>
-        </View>
       </View>
     </View>
   );
@@ -142,8 +146,62 @@ const ProfileMenuItem: React.FC<{
   iconType: string;
   isLast?: boolean;
 }> = ({ iconName, title, iconType, isLast }) => {
+  const { logout } = useAuth();
+  
+  // Handle logout functionality
+  const handleLogout = async () => {
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // Use AuthContext logout function which handles all cleanup
+              await logout();
+              
+              // Navigate to login screen and reset navigation stack
+              router.replace('/auth/login');
+            } catch (error) {
+              console.error('Error during logout:', error);
+              Alert.alert('Error', 'Failed to logout. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const handleMenuItemPress = () => {
-    Alert.alert('Menu Item', `You tapped: ${title}`);
+    switch (title) {
+      case 'My Orders':
+        router.push('/orders');
+        break;
+      case 'Saved Addresses':
+        router.push('/address-selection');
+        break;
+      case 'Customer Support':
+        router.push('/customer-support');
+        break;
+      case 'Help & FAQ':
+        router.push('/faq');
+        break;
+      case 'About Us':
+        router.push('/about-us');
+        break;
+      case 'Logout':
+        handleLogout();
+        break;
+      default:
+        Alert.alert('Menu Item', `You tapped: ${title}`);
+        break;
+    }
   };
 
   const renderIcon = () => {
@@ -190,25 +248,73 @@ const ProfileMenuItem: React.FC<{
 
 // Stats Component
 const ProfileStats: React.FC = () => {
+  const [stats, setStats] = useState({
+    ordersCount: 0,
+    addressesCount: 0,
+    coinsCount: 150, // Default coins value
+  });
+  const [loading, setLoading] = useState(true);
+
+  const loadUserStats = useCallback(async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch orders count from backend
+      const ordersResponse = await orderService.getUserOrders(1, 100); // Get first 100 orders to count
+      const ordersCount = ordersResponse.data?.pagination?.total || 0;
+      
+      // Fetch addresses count from backend
+      const addressesResponse = await addressService.getSavedAddresses();
+      const addressesCount = addressesResponse.length || 0;
+      
+      setStats({
+        ordersCount,
+        addressesCount,
+        coinsCount: 150, // This could come from a rewards/points service
+      });
+    } catch (error) {
+      console.error('Error loading user stats:', error);
+      // Use default values on error
+      setStats({
+        ordersCount: 0,
+        addressesCount: 0,
+        coinsCount: 0,
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadUserStats();
+  }, [loadUserStats]);
+
+  // Refresh stats when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      loadUserStats();
+    }, [loadUserStats])
+  );
+
   return (
     <View style={styles.statsContainer}>
       <View style={styles.statItem}>
-        <Text style={styles.statNumber}>24</Text>
+        <Text style={styles.statNumber}>{loading ? '...' : stats.ordersCount}</Text>
         <Text style={styles.statLabel}>Orders</Text>
       </View>
       
       <View style={styles.statDivider} />
       
       <View style={styles.statItem}>
-        <Text style={styles.statNumber}>3</Text>
+        <Text style={styles.statNumber}>{loading ? '...' : stats.addressesCount}</Text>
         <Text style={styles.statLabel}>Addresses</Text>
       </View>
       
       <View style={styles.statDivider} />
       
       <View style={styles.statItem}>
-        <Text style={styles.statNumber}>12</Text>
-        <Text style={styles.statLabel}>Favorites</Text>
+        <Text style={styles.statNumber}>{loading ? '...' : stats.coinsCount}</Text>
+        <Text style={styles.statLabel}>Coins</Text>
       </View>
     </View>
   );
@@ -322,25 +428,26 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
 
+  profileInitials: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: RED_COLOR,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  initialsText: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: 'white',
+  },
+
   profileImage: {
     width: 80,
     height: 80,
     borderRadius: 40,
     backgroundColor: LIGHT_GRAY,
-  },
-
-  cameraIcon: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    backgroundColor: RED_COLOR,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'white',
   },
 
   profileInfo: {
@@ -363,7 +470,16 @@ const styles = StyleSheet.create({
   profilePhone: {
     fontSize: 16,
     color: '#666',
+    marginBottom: 2,
+  },
+
+  profileAddress: {
+    fontSize: 14,
+    color: '#666',
     marginBottom: 12,
+    textAlign: 'center',
+    paddingHorizontal: 20,
+    lineHeight: 18,
   },
 
   membershipBadge: {

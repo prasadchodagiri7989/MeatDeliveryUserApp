@@ -1,5 +1,7 @@
 import { AntDesign, Ionicons } from '@expo/vector-icons';
-import React, { useEffect, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -13,36 +15,92 @@ import {
   View
 } from 'react-native';
 import { Cart, CartItem, cartService } from '../services/cartService';
+import { couponService, CouponValidationResponse } from '../services/couponService';
 import { Product, productService } from '../services/productService';
 
 const RED_COLOR = '#D13635';
 const LIGHT_GRAY = '#f5f5f5';
 const GREEN_COLOR = '#4CAF50';
 
-// Header Component
-const CartHeader: React.FC = () => (
-  <View style={styles.header}>
-    <Text style={styles.headerTitle}>Cart</Text>
-  </View>
-);
-
 // Delivery Location Component
 const DeliveryLocation: React.FC = () => {
-  const handleChangeLocation = () => {
-    Alert.alert('Change Location', 'Location change functionality');
+  const [userLocation, setUserLocation] = useState<string>('Fetching location...');
+
+  useEffect(() => {
+    loadUserLocation();
+  }, []);
+
+  const loadUserLocation = async () => {
+    try {
+      const userData = await AsyncStorage.getItem('userData');
+      if (userData) {
+        const user = JSON.parse(userData);
+        
+        // Handle address object or string
+        let addressString = 'Elamkulam, Kerala'; // Default
+        
+        if (user.address) {
+          if (typeof user.address === 'string') {
+            addressString = user.address;
+          } else if (typeof user.address === 'object') {
+            // Convert address object to string
+            const { street, city, state, zipCode, country } = user.address;
+            const parts = [];
+            if (street) parts.push(street);
+            if (city) parts.push(city);
+            if (state) parts.push(state);
+            if (zipCode) parts.push(zipCode);
+            if (country) parts.push(country);
+            addressString = parts.join(', ') || 'Elamkulam, Kerala';
+          }
+        } else if (user.location) {
+          if (typeof user.location === 'string') {
+            addressString = user.location;
+          } else if (typeof user.location === 'object') {
+            // Convert location object to string
+            const { street, city, state, zipCode, country } = user.location;
+            const parts = [];
+            if (street) parts.push(street);
+            if (city) parts.push(city);
+            if (state) parts.push(state);
+            if (zipCode) parts.push(zipCode);
+            if (country) parts.push(country);
+            addressString = parts.join(', ') || 'Elamkulam, Kerala';
+          }
+        }
+        
+        setUserLocation(addressString);
+      } else {
+        setUserLocation('Elamkulam, Kerala'); // Default location
+      }
+    } catch (error) {
+      console.error('Error loading user location:', error);
+      setUserLocation('Elamkulam, Kerala'); // Default fallback
+    }
+  };
+
+  const getLocationText = () => {
+    // Ensure we always return a string
+    return typeof userLocation === 'string' ? userLocation : 'Elamkulam, Kerala';
+  };
+
+  const handleNotificationPress = () => {
+    Alert.alert('Notifications', 'Notification functionality');
   };
 
   return (
-    <View style={styles.locationContainer}>
-      <View style={styles.locationLeft}>
-        <Ionicons name="location" size={20} color={RED_COLOR} />
-        <View style={styles.locationText}>
-          <Text style={styles.locationTitle}>Home</Text>
-          <Text style={styles.locationAddress}>Elamkulam, Kerala</Text>
+    <View style={styles.header}>
+      <View style={{ flexDirection: "row", alignItems: "center" }}>
+        <Ionicons name="location-sharp" size={20} color="#fff" />
+        <View>
+          <Text style={styles.locationText}>Current location</Text>
+          <Text style={styles.cityText}>
+            {getLocationText()}
+          </Text>
         </View>
       </View>
-      <TouchableOpacity onPress={handleChangeLocation}>
-        <Text style={styles.changeButton}>Change</Text>
+      <TouchableOpacity onPress={handleNotificationPress}>
+        <Ionicons name="notifications-outline" size={24} color="#fff" />
       </TouchableOpacity>
     </View>
   );
@@ -74,7 +132,12 @@ const CartItemCard: React.FC<{
 
   // Get image source - use backend image URL or fallback to local
   const getImageSource = () => {
-    if (item.product.image && item.product.image.startsWith('http')) {
+    // Try images array first (new API structure)
+    if (item.product?.images && item.product.images.length > 0 && item.product.images[0].url) {
+      return { uri: item.product.images[0].url };
+    }
+    // Fallback to single image field (legacy support)
+    if (item.product?.image && item.product.image.startsWith('http')) {
       return { uri: item.product.image };
     }
     return require('../assets/images/instant-pic.png'); // fallback image
@@ -91,23 +154,33 @@ const CartItemCard: React.FC<{
         
         <View style={styles.cartItemInfo}>
           <View style={styles.cartItemHeader}>
-            <Text style={styles.cartItemName}>{item.product.name}</Text>
-            {item.product.deliveryTime === '30 min' && (
-              <View style={styles.instantBadge}>
-                <Text style={styles.instantText}>Instant order</Text>
-              </View>
-            )}
+            <Text style={styles.cartItemName}>{item.product?.name || 'Unknown Product'}</Text>
+            <View style={styles.instantBadge}>
+              <Text style={styles.instantText}>Fresh</Text>
+            </View>
           </View>
+          
+          <Text style={styles.productWeight}>
+            {item.product?.weight ? `${item.product.weight.value}${item.product.weight.unit}` : '1kg'}
+          </Text>
           
           <View style={styles.priceContainer}>
-            <Text style={styles.currentPrice}>₹{item.priceAtTime}/kg</Text>
-            {item.product.discountedPrice && item.product.discountedPrice < item.product.price && (
-              <Text style={styles.originalPrice}>₹{item.product.price}/kg</Text>
+            <Text style={styles.currentPrice}>₹{item.priceAtTime}/{item.product?.weight?.unit || 'kg'}</Text>
+            {item.product?.discountedPrice && item.product?.discountedPrice < item.product?.price && (
+              <Text style={styles.originalPrice}>₹{item.product?.price}/{item.product?.weight?.unit || 'kg'}</Text>
             )}
           </View>
           
+          {item.product?.ratings && (
+            <View style={styles.ratingContainer}>
+              <AntDesign name="star" size={12} color="#FFD700" />
+              <Text style={styles.ratingText}>{item.product.ratings.average}</Text>
+              <Text style={styles.ratingCount}>({item.product.ratings.count})</Text>
+            </View>
+          )}
+          
           <Text style={styles.deliveryInfo}>
-            Will be delivered in {item.product.deliveryTime}
+            Will be delivered in 30-45 min
           </Text>
           
           <View style={styles.quantityController}>
@@ -144,6 +217,10 @@ const ProductCard: React.FC<{
 
   // Get image source - use backend image URL or fallback to local
   const getImageSource = () => {
+    // Try images array first, then single image field
+    if (item.images && item.images.length > 0 && item.images[0].url.startsWith('http')) {
+      return { uri: item.images[0].url };
+    }
     if (item.image && item.image.startsWith('http')) {
       return { uri: item.image };
     }
@@ -168,12 +245,16 @@ const ProductCard: React.FC<{
         <View style={styles.productDetails}>
           <View style={styles.ratingContainer}>
             <AntDesign name="star" size={12} color="#FFD700" />
-            <Text style={styles.ratingText}>{item.rating}</Text>
+            <Text style={styles.ratingText}>
+              {item.ratings?.average || item.rating || 4.5}
+            </Text>
           </View>
           
           <View style={styles.deliveryContainer}>
             <Ionicons name="time-outline" size={12} color={GREEN_COLOR} />
-            <Text style={styles.deliveryText}>{item.deliveryTime}</Text>
+            <Text style={styles.deliveryText}>
+              {item.deliveryTime || '30 min'}
+            </Text>
           </View>
         </View>
       </View>
@@ -182,29 +263,238 @@ const ProductCard: React.FC<{
 };
 
 // Coupon and Summary Component
-const CouponAndSummary: React.FC<{ cartItems: CartItem[] }> = ({ cartItems }) => {
+const CouponAndSummary: React.FC<{ 
+  cartItems: CartItem[];
+  cart: Cart | null;
+  onCouponApplied: () => void;
+}> = ({ cartItems, cart, onCouponApplied }) => {
   const [couponCode, setCouponCode] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('cod'); // Default to Cash on Delivery
+  const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
+  const [couponValidation, setCouponValidation] = useState<CouponValidationResponse | null>(null);
+  const [appliedCouponError, setAppliedCouponError] = useState<string | null>(null);
+
+  // Helper function to check if coupon is truly applied
+  const isCouponApplied = useCallback(() => {
+    return cart?.appliedCoupon?.code && cart.appliedCoupon.code.trim() !== '';
+  }, [cart?.appliedCoupon]);
   
-  const subTotal = cartItems.reduce((sum, item) => sum + (item.priceAtTime * item.quantity), 0);
-  const total = subTotal; // Add delivery charges, taxes etc here if needed
-  
-  const handleCheckCoupon = () => {
-    Alert.alert('Coupon', couponCode ? `Checking coupon: ${couponCode}` : 'Please enter a coupon code');
+  const subTotal = cart?.subtotal || cartItems.reduce((sum, item) => sum + (item.priceAtTime * item.quantity), 0);
+  const deliveryFee = 0; // Free delivery for now
+  // Only show discount if coupon is actually applied and has a valid code
+  const discountAmount = isCouponApplied() ? (cart?.discountAmount || 0) : 0;
+  const total = isCouponApplied() 
+    ? (cart?.finalAmount || (subTotal + deliveryFee - discountAmount))
+    : (cart?.totalAmount || (subTotal + deliveryFee)); 
+
+  // Reset validation when coupon code changes
+  useEffect(() => {
+    if (couponCode !== (cart?.appliedCoupon?.code || '')) {
+      setCouponValidation(null);
+      setAppliedCouponError(null);
+    }
+  }, [couponCode, cart?.appliedCoupon?.code]);
+
+  const handleCheckCoupon = async () => {
+    if (!couponCode.trim()) {
+      Alert.alert('Error', 'Please enter a coupon code');
+      return;
+    }
+
+    try {
+      setIsValidatingCoupon(true);
+      setAppliedCouponError(null);
+
+      // First validate the coupon
+      const validation = await couponService.validateCoupon(couponCode.trim(), subTotal);
+      setCouponValidation(validation);
+
+      // If validation is successful, apply the coupon to cart
+      await cartService.applyCoupon(couponCode.trim());
+      
+      // Refresh the cart data
+      onCouponApplied();
+      
+      Alert.alert('Success!', `Coupon applied successfully! You saved ₹${validation.discount}`);
+    } catch (error: any) {
+      console.error('Error checking coupon:', error);
+      setCouponValidation(null);
+      setAppliedCouponError(error.message || 'Failed to apply coupon');
+      Alert.alert('Error', error.message || 'Failed to apply coupon');
+    } finally {
+      setIsValidatingCoupon(false);
+    }
   };
+
+  const handleRemoveCoupon = async () => {
+    try {
+      setIsValidatingCoupon(true);
+      
+      // Clear the UI state immediately to provide instant feedback
+      setCouponCode('');
+      setCouponValidation(null);
+      setAppliedCouponError(null);
+      
+      try {
+        await cartService.removeCoupon();
+      } catch (error: any) {
+        // If we get the toFixed error, it likely means the coupon was removed but there's a backend formatting issue
+        if (error.message && error.message.includes('toFixed')) {
+          console.log('Coupon likely removed despite formatting error');
+        } else {
+          // If there's a real error, restore the coupon code only if there was actually a valid coupon
+          if (cart?.appliedCoupon?.code) {
+            setCouponCode(cart.appliedCoupon.code);
+            // Don't clear the validation states on real error
+            setCouponValidation(null);
+            setAppliedCouponError(null);
+          }
+          throw error; // Re-throw if it's a different error
+        }
+      }
+      
+      // Always refresh the cart to get the updated state
+      onCouponApplied();
+      
+      Alert.alert('Success', 'Coupon removed successfully');
+    } catch (error: any) {
+      console.error('Error removing coupon:', error);
+      Alert.alert('Error', error.message || 'Failed to remove coupon');
+    } finally {
+      setIsValidatingCoupon(false);
+    }
+  };
+
+  // Set coupon code only when cart's applied coupon changes
+  useEffect(() => {
+    if (cart?.appliedCoupon?.code) {
+      // Set coupon code if there's an applied coupon
+      setCouponCode(cart.appliedCoupon.code);
+    }
+    // Don't clear input automatically - let user type freely
+  }, [cart?.appliedCoupon?.code]);
 
   return (
     <View style={styles.summaryContainer}>
       {/* Coupon Section */}
       <View style={styles.couponSection}>
-        <TextInput
-          style={styles.couponInput}
-          placeholder="Enter coupon code"
-          placeholderTextColor="#999"
-          value={couponCode}
-          onChangeText={setCouponCode}
-        />
-        <TouchableOpacity style={styles.checkButton} onPress={handleCheckCoupon}>
-          <Text style={styles.checkButtonText}>Check</Text>
+        <View style={styles.couponInputContainer}>
+          <TextInput
+            style={[
+              styles.couponInput, 
+              isCouponApplied() && styles.couponInputApplied
+            ]}
+            placeholder="Enter coupon code"
+            placeholderTextColor="#999"
+            value={couponCode}
+            onChangeText={setCouponCode}
+            editable={!isCouponApplied()}
+          />
+          <TouchableOpacity 
+            style={[
+              styles.checkButton,
+              isCouponApplied() ? styles.couponRemoveButton : styles.checkButton,
+              isValidatingCoupon && styles.checkButtonDisabled
+            ]} 
+            onPress={isCouponApplied() ? handleRemoveCoupon : handleCheckCoupon}
+            disabled={isValidatingCoupon}
+          >
+            <Text style={[
+              styles.checkButtonText,
+              isCouponApplied() && styles.removeButtonText
+            ]}>
+              {isValidatingCoupon ? 'Wait...' : isCouponApplied() ? 'Remove' : 'Apply'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Applied Coupon Success Message */}
+        {isCouponApplied() && (
+          <View style={styles.couponSuccessContainer}>
+            <Ionicons name="checkmark-circle" size={16} color={GREEN_COLOR} />
+            <Text style={styles.couponSuccessText}>
+              Coupon &ldquo;{cart!.appliedCoupon!.code}&rdquo; applied! You saved ₹{cart!.appliedCoupon!.discount}
+            </Text>
+          </View>
+        )}
+
+        {/* Coupon Error Message */}
+        {appliedCouponError && !isCouponApplied() && (
+          <View style={styles.couponErrorContainer}>
+            <Ionicons name="close-circle" size={16} color="#ff4444" />
+            <Text style={styles.couponErrorText}>{appliedCouponError}</Text>
+          </View>
+        )}
+
+        {/* Coupon Validation Preview (before applying) */}
+        {couponValidation && !isCouponApplied() && !appliedCouponError && (
+          <View style={styles.couponValidContainer}>
+            <Ionicons name="gift" size={16} color={GREEN_COLOR} />
+            <Text style={styles.couponValidText}>
+              Great! You&apos;ll save ₹{couponValidation.discount} with this coupon
+            </Text>
+          </View>
+        )}
+      </View>
+
+      {/* Payment Method Selection */}
+      <View style={styles.paymentSection}>
+        <Text style={styles.paymentSectionTitle}>Payment Method</Text>
+        <TouchableOpacity 
+          style={[
+            styles.paymentOption, 
+            paymentMethod === 'cod' && styles.paymentOptionSelected
+          ]}
+          onPress={() => setPaymentMethod('cod')}
+        >
+          <View style={styles.paymentOptionContent}>
+            <View style={styles.paymentOptionLeft}>
+              <Ionicons 
+                name="cash-outline" 
+                size={24} 
+                color={paymentMethod === 'cod' ? RED_COLOR : '#666'} 
+              />
+              <View style={styles.paymentOptionText}>
+                <Text style={[
+                  styles.paymentOptionTitle,
+                  paymentMethod === 'cod' && styles.paymentOptionTitleSelected
+                ]}>
+                  Cash on Delivery
+                </Text>
+                <Text style={styles.paymentOptionSubtitle}>
+                  Pay when you receive your order
+                </Text>
+              </View>
+            </View>
+            <View style={[
+              styles.radioButton,
+              paymentMethod === 'cod' && styles.radioButtonSelected
+            ]}>
+              {paymentMethod === 'cod' && (
+                <View style={styles.radioButtonInner} />
+              )}
+            </View>
+          </View>
+        </TouchableOpacity>
+        
+        {/* Future payment options can be added here */}
+        <TouchableOpacity 
+          style={[styles.paymentOption, styles.paymentOptionDisabled]}
+          disabled={true}
+        >
+          <View style={styles.paymentOptionContent}>
+            <View style={styles.paymentOptionLeft}>
+              <Ionicons name="card-outline" size={24} color="#ccc" />
+              <View style={styles.paymentOptionText}>
+                <Text style={styles.paymentOptionTitleDisabled}>
+                  Online Payment
+                </Text>
+                <Text style={styles.paymentOptionSubtitle}>
+                  Coming soon
+                </Text>
+              </View>
+            </View>
+          </View>
         </TouchableOpacity>
       </View>
       
@@ -214,6 +504,25 @@ const CouponAndSummary: React.FC<{ cartItems: CartItem[] }> = ({ cartItems }) =>
           <Text style={styles.priceLabel}>Sub Total</Text>
           <Text style={styles.priceValue}>₹{subTotal}</Text>
         </View>
+        
+        <View style={styles.priceRow}>
+          <Text style={styles.priceLabel}>Delivery Fee</Text>
+          <Text style={[styles.priceValue, deliveryFee === 0 && styles.freeDelivery]}>
+            {deliveryFee === 0 ? 'FREE' : `₹${deliveryFee}`}
+          </Text>
+        </View>
+
+        {/* Show discount if coupon is applied */}
+        {isCouponApplied() && discountAmount > 0 && (
+          <View style={styles.priceRow}>
+            <Text style={styles.priceLabel}>
+              Coupon Discount ({cart!.appliedCoupon!.code})
+            </Text>
+            <Text style={[styles.priceValue, styles.discountValue]}>
+              -₹{discountAmount}
+            </Text>
+          </View>
+        )}
         
         <View style={[styles.priceRow, styles.totalRow]}>
           <Text style={styles.totalLabel}>Total</Text>
@@ -253,9 +562,11 @@ const CartPage: React.FC = () => {
   const loadSuggestedProducts = async () => {
     try {
       const products = await productService.getSuggestedProducts(4);
-      setSuggestedProducts(products);
+      // Ensure we always set an array
+      setSuggestedProducts(Array.isArray(products) ? products : []);
     } catch (error) {
       console.error('Error loading suggested products:', error);
+      setSuggestedProducts([]); // Set empty array on error
     }
   };
 
@@ -264,9 +575,10 @@ const CartPage: React.FC = () => {
       setUpdating(true);
       const updatedCart = await cartService.updateCartItem(itemId, quantity);
       setCart(updatedCart);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating quantity:', error);
-      Alert.alert('Error', 'Failed to update quantity');
+      const errorMessage = error.message || 'Failed to update quantity';
+      Alert.alert('Error', errorMessage);
     } finally {
       setUpdating(false);
     }
@@ -277,13 +589,46 @@ const CartPage: React.FC = () => {
       setUpdating(true);
       const updatedCart = await cartService.removeFromCart(itemId);
       setCart(updatedCart);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error removing item:', error);
-      Alert.alert('Error', 'Failed to remove item');
+      const errorMessage = error.message || 'Failed to remove item';
+      Alert.alert('Error', errorMessage);
     } finally {
       setUpdating(false);
     }
   };
+
+  const clearUnavailableItems = async () => {
+    try {
+      setUpdating(true);
+      
+      if (cart) {
+        const unavailableItems = cart.items.filter(item => item.product === null);
+        const validItems = cart.items.filter(item => item.product !== null);
+        
+        // If all items are unavailable, use clearCart API for efficiency
+        if (validItems.length === 0) {
+          await cartService.clearCart();
+        } else {
+          // Remove only unavailable items
+          for (const item of unavailableItems) {
+            await cartService.removeFromCart(item._id);
+          }
+        }
+        
+        // Reload the cart
+        await loadCartData();
+      }
+    } catch (error: any) {
+      console.error('Error clearing unavailable items:', error);
+      const errorMessage = error.message || 'Failed to clear unavailable items';
+      Alert.alert('Error', errorMessage);
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+
 
   const addToCart = async (productId: string) => {
     try {
@@ -291,9 +636,10 @@ const CartPage: React.FC = () => {
       const updatedCart = await cartService.addToCart(productId, 1);
       setCart(updatedCart);
       Alert.alert('Success', 'Product added to cart');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding to cart:', error);
-      Alert.alert('Error', 'Failed to add product to cart');
+      const errorMessage = error.message || 'Failed to add product to cart';
+      Alert.alert('Error', errorMessage);
     } finally {
       setUpdating(false);
     }
@@ -301,7 +647,10 @@ const CartPage: React.FC = () => {
 
   const handleProceed = () => {
     if (cart && cart.totalAmount > 0) {
-      Alert.alert('Proceed', `Proceeding to checkout with total: ₹${cart.totalAmount}`);
+      // Navigate to address selection screen
+      router.push('/address-selection');
+    } else {
+      Alert.alert('Error', 'Your cart is empty or has no valid items');
     }
   };
 
@@ -318,10 +667,7 @@ const CartPage: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <CartHeader />
-      
-      {/* Delivery Location */}
+      {/* Header with Location */}
       <DeliveryLocation />
       
       <ScrollView 
@@ -331,7 +677,9 @@ const CartPage: React.FC = () => {
       >
         {/* Cart Items */}
         <View style={styles.cartItemsSection}>
-          {cart?.items.map(item => (
+          {cart?.items
+            .filter(item => item.product !== null) // Filter out items with null products
+            .map(item => (
             <CartItemCard
               key={item._id}
               item={item}
@@ -340,9 +688,41 @@ const CartPage: React.FC = () => {
             />
           ))}
           
+          {/* Handle empty cart or all items unavailable */}
           {(!cart || cart.items.length === 0) && (
             <View style={styles.emptyCart}>
               <Text style={styles.emptyCartText}>Your cart is empty</Text>
+              <Text style={styles.emptyCartSubtext}>Add some delicious items to get started!</Text>
+            </View>
+          )}
+          
+          {/* Handle case when cart has items but all products are null */}
+          {cart && cart.items.length > 0 && cart.items.every(item => item.product === null) && (
+            <View style={styles.unavailableCart}>
+              <Ionicons name="sad-outline" size={48} color="#ff6b6b" />
+              <Text style={styles.unavailableTitle}>All items are unavailable</Text>
+              <Text style={styles.unavailableText}>
+                The products in your cart are no longer available. 
+                {'\n'}Please clear your cart and add fresh items.
+              </Text>
+              <TouchableOpacity style={styles.clearCartButton} onPress={clearUnavailableItems}>
+                <Text style={styles.clearCartButtonText}>Clear Cart</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          
+          {/* Show warning if only some items have missing product data */}
+          {cart && cart.items.length > 0 && 
+           cart.items.some(item => item.product === null) && 
+           !cart.items.every(item => item.product === null) && (
+            <View style={styles.warningContainer}>
+              <Ionicons name="warning" size={20} color="#ff9800" />
+              <Text style={styles.warningText}>
+                Some items are no longer available and have been hidden.
+              </Text>
+              <TouchableOpacity onPress={clearUnavailableItems} style={styles.clearUnavailableButton}>
+                <Text style={styles.clearUnavailableText}>Remove unavailable items</Text>
+              </TouchableOpacity>
             </View>
           )}
         </View>
@@ -355,9 +735,9 @@ const CartPage: React.FC = () => {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.suggestedContainer}
           >
-            {suggestedProducts.map(product => (
+            {Array.isArray(suggestedProducts) && suggestedProducts.map(product => (
               <ProductCard 
-                key={product._id} 
+                key={product._id || product.id} 
                 item={product} 
                 onAddToCart={addToCart}
               />
@@ -365,13 +745,17 @@ const CartPage: React.FC = () => {
           </ScrollView>
         </View>
         
-        {/* Coupon and Summary */}
-        {cart && cart.items.length > 0 && (
-          <CouponAndSummary cartItems={cart.items} />
+        {/* Coupon and Summary - only show if there are valid items */}
+        {cart && cart.items.length > 0 && cart.items.some(item => item.product !== null) && (
+          <CouponAndSummary 
+            cartItems={cart.items.filter(item => item.product !== null)} 
+            cart={cart}
+            onCouponApplied={loadCartData}
+          />
         )}
         
-        {/* Proceed Button */}
-        {cart && cart.items.length > 0 && (
+        {/* Proceed Button - only show if there are valid items */}
+        {cart && cart.items.length > 0 && cart.items.some(item => item.product !== null) && (
           <TouchableOpacity 
             style={styles.proceedButton} 
             onPress={handleProceed}
@@ -395,16 +779,26 @@ const styles = StyleSheet.create({
 
   // Header Styles
   header: {
-    paddingVertical: 15,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    backgroundColor: RED_COLOR,
   },
 
-  headerTitle: {
-    fontSize: 20,
+  locationText: {
+    fontSize: 12,
+    color: '#fff',
+    marginLeft: 8,
+  },
+
+  cityText: {
+    fontSize: 16,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#fff',
+    marginLeft: 8,
+    marginTop: 2,
   },
 
   // Delivery Location Styles
@@ -420,10 +814,6 @@ const styles = StyleSheet.create({
   locationLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-
-  locationText: {
-    marginLeft: 10,
   },
 
   locationTitle: {
@@ -662,6 +1052,23 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 
+  productWeight: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 4,
+  },
+
+  ratingStars: {
+    flexDirection: 'row',
+    marginRight: 5,
+  },
+
+  ratingCount: {
+    fontSize: 12,
+    color: '#666',
+    marginLeft: 4,
+  },
+
   deliveryContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -681,8 +1088,12 @@ const styles = StyleSheet.create({
   },
 
   couponSection: {
-    flexDirection: 'row',
     marginBottom: 20,
+  },
+
+  couponInputContainer: {
+    flexDirection: 'row',
+    marginBottom: 10,
   },
 
   couponInput: {
@@ -693,6 +1104,12 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 16,
     marginRight: 10,
+  },
+
+  couponInputApplied: {
+    backgroundColor: '#f0f9f0',
+    borderWidth: 1,
+    borderColor: GREEN_COLOR,
   },
 
   checkButton: {
@@ -707,6 +1124,80 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
     fontSize: 16,
+  },
+
+  checkButtonDisabled: {
+    opacity: 0.6,
+  },
+
+  couponRemoveButton: {
+    backgroundColor: '#ff6b6b',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    justifyContent: 'center',
+  },
+
+  removeButtonText: {
+    color: 'white',
+  },
+
+  // Coupon Status Messages
+  couponSuccessContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f0f9f0',
+    borderColor: GREEN_COLOR,
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 10,
+  },
+
+  couponSuccessText: {
+    fontSize: 14,
+    color: GREEN_COLOR,
+    fontWeight: '600',
+    marginLeft: 8,
+    flex: 1,
+  },
+
+  couponErrorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff0f0',
+    borderColor: '#ff4444',
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 10,
+  },
+
+  couponErrorText: {
+    fontSize: 14,
+    color: '#ff4444',
+    fontWeight: '500',
+    marginLeft: 8,
+    flex: 1,
+  },
+
+  couponValidContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f0f9f0',
+    borderColor: GREEN_COLOR,
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 10,
+  },
+
+  couponValidText: {
+    fontSize: 14,
+    color: GREEN_COLOR,
+    fontWeight: '600',
+    marginLeft: 8,
+    flex: 1,
   },
 
   priceBreakdown: {
@@ -790,6 +1281,203 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
     textAlign: 'center',
+  },
+
+  // Warning Styles
+  warningContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff3cd',
+    borderColor: '#ffeaa7',
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    margin: 10,
+  },
+
+  warningText: {
+    fontSize: 14,
+    color: '#856404',
+    marginLeft: 8,
+    flex: 1,
+  },
+
+  // Enhanced Empty Cart Styles
+  emptyCartSubtext: {
+    fontSize: 14,
+    color: '#999',
+    textAlign: 'center',
+    marginTop: 5,
+  },
+
+  // Unavailable Cart Styles
+  unavailableCart: {
+    alignItems: 'center',
+    paddingVertical: 40,
+    paddingHorizontal: 20,
+    backgroundColor: '#fff5f5',
+    borderColor: '#ffebee',
+    borderWidth: 1,
+    borderRadius: 12,
+    margin: 10,
+  },
+
+  unavailableTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#d32f2f',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+
+  unavailableText: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 20,
+  },
+
+  clearCartButton: {
+    backgroundColor: '#ff6b6b',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 25,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+
+  clearCartButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+
+  // Clear Unavailable Button Styles
+  clearUnavailableButton: {
+    backgroundColor: 'transparent',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: '#ff9800',
+    marginLeft: 10,
+  },
+
+  clearUnavailableText: {
+    color: '#ff9800',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+
+  // Payment Method Styles
+  paymentSection: {
+    marginBottom: 20,
+  },
+
+  paymentSectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 15,
+  },
+
+  paymentOption: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: '#f0f0f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+
+  paymentOptionSelected: {
+    borderColor: RED_COLOR,
+    backgroundColor: '#fef5f5',
+  },
+
+  paymentOptionDisabled: {
+    opacity: 0.5,
+    backgroundColor: '#f8f8f8',
+  },
+
+  paymentOptionContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+
+  paymentOptionLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+
+  paymentOptionText: {
+    marginLeft: 15,
+    flex: 1,
+  },
+
+  paymentOptionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 2,
+  },
+
+  paymentOptionTitleSelected: {
+    color: RED_COLOR,
+  },
+
+  paymentOptionTitleDisabled: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#999',
+    marginBottom: 2,
+  },
+
+  paymentOptionSubtitle: {
+    fontSize: 14,
+    color: '#666',
+  },
+
+  radioButton: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#ddd',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  radioButtonSelected: {
+    borderColor: RED_COLOR,
+  },
+
+  radioButtonInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: RED_COLOR,
+  },
+
+  freeDelivery: {
+    color: GREEN_COLOR,
+    fontWeight: 'bold',
+  },
+
+  discountValue: {
+    color: GREEN_COLOR,
+    fontWeight: 'bold',
   },
 });
 

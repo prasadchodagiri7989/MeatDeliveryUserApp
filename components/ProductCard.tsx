@@ -1,6 +1,6 @@
-import React from "react";
-import { View, Text, StyleSheet, Image, TouchableOpacity, Dimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import React from "react";
+import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 interface ProductCardProps {
   name: string;
@@ -10,10 +10,6 @@ interface ProductCardProps {
   image?: any;
 }
 
-const { width } = Dimensions.get("window");
-const CARD_MARGIN = 12;
-const CARD_WIDTH = (width - CARD_MARGIN * 3) / 2; // 2 per row with spacing
-
 export default function ProductCard({
   name,
   price,
@@ -22,7 +18,7 @@ export default function ProductCard({
   image,
 }: ProductCardProps) {
   return (
-    <View style={[styles.card, { width: CARD_WIDTH }]}>
+    <View style={styles.card}>
       {/* Product Image */}
       <Image
         source={image || require("../assets/images/instant-pic.png")}
@@ -60,9 +56,10 @@ export default function ProductCard({
 
 const styles = StyleSheet.create({
   card: {
+    flex: 1,
     backgroundColor: "#fff",
     borderRadius: 12,
-    marginBottom: CARD_MARGIN,
+    marginBottom: 12,
     shadowColor: "#000",
     shadowOpacity: 0.1,
     shadowRadius: 6,

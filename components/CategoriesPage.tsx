@@ -1,101 +1,51 @@
 import { AntDesign, Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
 import {
-    Alert,
-    FlatList,
-    Image,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Image,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
+import { cartService } from '../services/cartService';
+import { Product, productService } from '../services/productService';
 
 const RED_COLOR = '#D13635';
 const LIGHT_GRAY = '#f5f5f5';
 
-// Sample categories data with products
-const categories = [
+// Interface for category with products
+interface CategoryWithProducts {
+  id: string;
+  name: string;
+  description: string;
+  image: any;
+  itemCount: string;
+  products: Product[];
+}
+
+// Categories configuration
+const categoriesConfig = [
   {
     id: '1',
-    name: 'Beef',
-    description: 'Fresh premium beef cuts',
+    name: 'Premium Cut',
+    description: 'Premium quality meat cuts',
     image: require('../assets/images/instant-pic.png'),
-    itemCount: '12 items',
-    products: [
-      { id: '1-1', name: 'Beef Tenderloin', price: '₹600/kg', image: require('../assets/images/instant-pic.png'), rating: 4.8 },
-      { id: '1-2', name: 'Beef Ribeye', price: '₹550/kg', image: require('../assets/images/instant-pic.png'), rating: 4.7 },
-      { id: '1-3', name: 'Beef Sirloin', price: '₹500/kg', image: require('../assets/images/instant-pic.png'), rating: 4.6 },
-      { id: '1-4', name: 'Ground Beef', price: '₹400/kg', image: require('../assets/images/instant-pic.png'), rating: 4.5 },
-    ]
+    apiCategory: 'premium'
   },
   {
-    id: '2',
-    name: 'Chicken',
-    description: 'Farm fresh chicken',
+    id: '2', 
+    name: 'Normal Cut',
+    description: 'Regular quality meat cuts',
     image: require('../assets/images/instant-pic.png'),
-    itemCount: '8 items',
-    products: [
-      { id: '2-1', name: 'Chicken Breast', price: '₹300/kg', image: require('../assets/images/instant-pic.png'), rating: 4.7 },
-      { id: '2-2', name: 'Chicken Wings', price: '₹280/kg', image: require('../assets/images/instant-pic.png'), rating: 4.6 },
-      { id: '2-3', name: 'Chicken Thighs', price: '₹250/kg', image: require('../assets/images/instant-pic.png'), rating: 4.5 },
-      { id: '2-4', name: 'Whole Chicken', price: '₹200/kg', image: require('../assets/images/instant-pic.png'), rating: 4.8 },
-    ]
-  },
-  {
-    id: '3',
-    name: 'Mutton',
-    description: 'Premium mutton cuts',
-    image: require('../assets/images/instant-pic.png'),
-    itemCount: '10 items',
-    products: [
-      { id: '3-1', name: 'Mutton Leg', price: '₹700/kg', image: require('../assets/images/instant-pic.png'), rating: 4.9 },
-      { id: '3-2', name: 'Mutton Chops', price: '₹650/kg', image: require('../assets/images/instant-pic.png'), rating: 4.8 },
-      { id: '3-3', name: 'Mutton Curry Cut', price: '₹600/kg', image: require('../assets/images/instant-pic.png'), rating: 4.7 },
-      { id: '3-4', name: 'Mutton Biryani Cut', price: '₹580/kg', image: require('../assets/images/instant-pic.png'), rating: 4.6 },
-    ]
-  },
-  {
-    id: '4',
-    name: 'Pork',
-    description: 'Fresh pork selections',
-    image: require('../assets/images/instant-pic.png'),
-    itemCount: '6 items',
-    products: [
-      { id: '4-1', name: 'Pork Ribs', price: '₹450/kg', image: require('../assets/images/instant-pic.png'), rating: 4.7 },
-      { id: '4-2', name: 'Pork Belly', price: '₹400/kg', image: require('../assets/images/instant-pic.png'), rating: 4.6 },
-      { id: '4-3', name: 'Pork Chops', price: '₹500/kg', image: require('../assets/images/instant-pic.png'), rating: 4.8 },
-      { id: '4-4', name: 'Pork Shoulder', price: '₹380/kg', image: require('../assets/images/instant-pic.png'), rating: 4.5 },
-    ]
-  },
-  {
-    id: '5',
-    name: 'Fish',
-    description: 'Ocean fresh fish',
-    image: require('../assets/images/instant-pic.png'),
-    itemCount: '15 items',
-    products: [
-      { id: '5-1', name: 'Salmon Fillet', price: '₹800/kg', image: require('../assets/images/instant-pic.png'), rating: 4.9 },
-      { id: '5-2', name: 'Tuna Steak', price: '₹750/kg', image: require('../assets/images/instant-pic.png'), rating: 4.8 },
-      { id: '5-3', name: 'Sea Bass', price: '₹600/kg', image: require('../assets/images/instant-pic.png'), rating: 4.7 },
-      { id: '5-4', name: 'Pomfret', price: '₹500/kg', image: require('../assets/images/instant-pic.png'), rating: 4.6 },
-    ]
-  },
-  {
-    id: '6',
-    name: 'Seafood',
-    description: 'Premium seafood',
-    image: require('../assets/images/instant-pic.png'),
-    itemCount: '9 items',
-    products: [
-      { id: '6-1', name: 'King Prawns', price: '₹900/kg', image: require('../assets/images/instant-pic.png'), rating: 4.9 },
-      { id: '6-2', name: 'Crab Meat', price: '₹850/kg', image: require('../assets/images/instant-pic.png'), rating: 4.8 },
-      { id: '6-3', name: 'Lobster Tail', price: '₹1200/kg', image: require('../assets/images/instant-pic.png'), rating: 5.0 },
-      { id: '6-4', name: 'Mussels', price: '₹400/kg', image: require('../assets/images/instant-pic.png'), rating: 4.5 },
-    ]
-  },
+    apiCategory: 'normal'
+  }
 ];
 
 // Header Component
@@ -116,9 +66,6 @@ const Header: React.FC = () => {
       
       <Text style={styles.headerTitle}>Categories</Text>
       
-      <TouchableOpacity onPress={handleMenu} style={styles.headerButton}>
-        <Ionicons name="menu" size={24} color="#333" />
-      </TouchableOpacity>
     </View>
   );
 };
@@ -138,23 +85,32 @@ const SearchBar: React.FC<{ searchText: string; setSearchText: (text: string) =>
         />
       </View>
       
-      <TouchableOpacity style={styles.filterButton}>
-        <Ionicons name="options" size={20} color="#333" />
-      </TouchableOpacity>
+
     </View>
   );
 };
 
 // Product Card Component
-const ProductCard: React.FC<{ item: any }> = ({ item }) => {
+const ProductCard: React.FC<{ item: Product; onAddToCart: (product: Product) => void; onPress: (product: Product) => void }> = ({ item, onAddToCart, onPress }) => {
   const handleAddToCart = () => {
-    Alert.alert('Added to Cart', `${item.name} added to cart`);
+    onAddToCart(item);
+  };
+
+  const handlePress = () => {
+    onPress(item);
   };
 
   return (
-    <View style={styles.productCard}>
+    <TouchableOpacity style={styles.productCard} onPress={handlePress}>
       <View style={styles.productImageContainer}>
-        <Image source={item.image} style={styles.productImage} />
+        <Image 
+          source={
+            item.image || (item.images && item.images[0]?.url)
+              ? { uri: item.image || item.images?.[0]?.url }
+              : require('../assets/images/instant-pic.png')
+          } 
+          style={styles.productImage} 
+        />
         <TouchableOpacity style={styles.addButton} onPress={handleAddToCart}>
           <AntDesign name="plus" size={16} color="white" />
         </TouchableOpacity>
@@ -162,20 +118,30 @@ const ProductCard: React.FC<{ item: any }> = ({ item }) => {
       
       <View style={styles.productInfo}>
         <Text style={styles.productName} numberOfLines={1}>{item.name}</Text>
-        <Text style={styles.productPrice}>{item.price}</Text>
+        <Text style={styles.productPrice}>
+          ₹{Math.round(item.discountedPrice || item.price)}/kg
+        </Text>
         
         <View style={styles.ratingContainer}>
           <AntDesign name="star" size={12} color="#FFD700" />
-          <Text style={styles.ratingText}>{item.rating}</Text>
+          <Text style={styles.ratingText}>
+            {item.ratings?.average || item.rating || 4.5}
+          </Text>
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 
 // Category Section Component
-const CategorySection: React.FC<{ category: any }> = ({ category }) => {
-  const renderProduct = ({ item }: { item: any }) => <ProductCard item={item} />;
+const CategorySection: React.FC<{ 
+  category: CategoryWithProducts; 
+  onProductPress: (product: Product) => void;
+  onAddToCart: (product: Product) => void;
+}> = ({ category, onProductPress, onAddToCart }) => {
+  const renderProduct = ({ item }: { item: Product }) => (
+    <ProductCard item={item} onPress={onProductPress} onAddToCart={onAddToCart} />
+  );
 
   return (
     <View style={styles.categorySection}>
@@ -186,22 +152,28 @@ const CategorySection: React.FC<{ category: any }> = ({ category }) => {
         </TouchableOpacity>
       </View>
       
-      <FlatList
-        data={category.products}
-        renderItem={renderProduct}
-        keyExtractor={(item) => item.id}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.productsContainer}
-      />
+      {category.products.length > 0 ? (
+        <FlatList
+          data={category.products}
+          renderItem={renderProduct}
+          keyExtractor={(item) => item._id || item.id}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.productsContainer}
+        />
+      ) : (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>No products available in this category</Text>
+        </View>
+      )}
     </View>
   );
 };
 
 // Category Card Component
-const CategoryCard: React.FC<{ item: typeof categories[0] }> = ({ item }) => {
+const CategoryCard: React.FC<{ item: CategoryWithProducts; onPress: (category: CategoryWithProducts) => void }> = ({ item, onPress }) => {
   const handleCategoryPress = () => {
-    Alert.alert('Category Selected', `You selected ${item.name}`);
+    onPress(item);
   };
 
   return (
@@ -224,6 +196,74 @@ const CategoryCard: React.FC<{ item: typeof categories[0] }> = ({ item }) => {
 // Main CategoriesPage Component
 const CategoriesPage: React.FC = () => {
   const [searchText, setSearchText] = useState('');
+  const [categories, setCategories] = useState<CategoryWithProducts[]>([]);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+
+  // Fetch categories and their products
+  useEffect(() => {
+    const fetchCategoriesData = async () => {
+      try {
+        setLoading(true);
+        
+        const categoriesData: CategoryWithProducts[] = [];
+        
+        for (const config of categoriesConfig) {
+          try {
+            const products = await productService.getProductsByCategory(config.apiCategory);
+            categoriesData.push({
+              id: config.id,
+              name: config.name,
+              description: config.description,
+              image: config.image,
+              itemCount: `${products.length} items`,
+              products: products
+            });
+          } catch (error) {
+            console.error(`Error fetching products for ${config.name}:`, error);
+            // Add empty category if fetch fails
+            categoriesData.push({
+              id: config.id,
+              name: config.name,
+              description: config.description,
+              image: config.image,
+              itemCount: '0 items',
+              products: []
+            });
+          }
+        }
+        
+        setCategories(categoriesData);
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCategoriesData();
+  }, []);
+
+  // Handle product press
+  const handleProductPress = (product: Product) => {
+    router.push(`/product-detail?id=${product._id || product.id}` as any);
+  };
+
+  // Handle add to cart
+  const handleAddToCart = async (product: Product) => {
+    try {
+      await cartService.addToCart(product._id || product.id, 1);
+      Alert.alert('Success', `${product.name} added to cart`);
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      Alert.alert('Error', 'Failed to add item to cart. Please try again.');
+    }
+  };
+
+  // Handle category press
+  const handleCategoryPress = (category: CategoryWithProducts) => {
+    Alert.alert('Category Selected', `You selected ${category.name}`);
+  };
 
   // Filter categories and products based on search
   const filteredData = searchText 
@@ -236,9 +276,21 @@ const CategoriesPage: React.FC = () => {
       )
     : categories;
 
-  const renderCategoryItem = ({ item }: { item: typeof categories[0] }) => (
-    <CategoryCard item={item} />
+  const renderCategoryItem = ({ item }: { item: CategoryWithProducts }) => (
+    <CategoryCard item={item} onPress={handleCategoryPress} />
   );
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <Header />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={RED_COLOR} />
+          <Text style={styles.loadingText}>Loading categories...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -264,7 +316,12 @@ const CategoriesPage: React.FC = () => {
             </Text>
             
             {filteredData.map((category) => (
-              <CategorySection key={category.id} category={category} />
+              <CategorySection 
+                key={category.id} 
+                category={category} 
+                onProductPress={handleProductPress}
+                onAddToCart={handleAddToCart}
+              />
             ))}
           </View>
         ) : (
@@ -276,38 +333,51 @@ const CategoriesPage: React.FC = () => {
                 <Text style={styles.sectionSubtitle}>Choose your favorite meat</Text>
               </View>
               
-              <FlatList
-                data={categories}
-                renderItem={renderCategoryItem}
-                keyExtractor={(item) => item.id}
-                numColumns={2}
-                scrollEnabled={false}
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.categoriesContainer}
-                columnWrapperStyle={styles.categoryRow}
-              />
+              {categories.length > 0 ? (
+                <FlatList
+                  data={categories}
+                  renderItem={renderCategoryItem}
+                  keyExtractor={(item) => item.id}
+                  numColumns={2}
+                  scrollEnabled={false}
+                  showsVerticalScrollIndicator={false}
+                  contentContainerStyle={styles.categoriesContainer}
+                  columnWrapperStyle={styles.categoryRow}
+                />
+              ) : (
+                <View style={styles.emptyContainer}>
+                  <Text style={styles.emptyText}>No categories available</Text>
+                </View>
+              )}
             </View>
             
             {/* Product Sections */}
             {categories.map((category) => (
-              <CategorySection key={category.id} category={category} />
+              <CategorySection 
+                key={category.id} 
+                category={category} 
+                onProductPress={handleProductPress}
+                onAddToCart={handleAddToCart}
+              />
             ))}
             
             {/* Popular Categories Section */}
-            <View style={styles.popularSection}>
-              <Text style={styles.sectionTitle}>Popular This Week</Text>
-              
-              <FlatList
-                data={categories.slice(0, 4)}
-                renderItem={renderCategoryItem}
-                keyExtractor={(item) => item.id}
-                numColumns={2}
-                scrollEnabled={false}
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.categoriesContainer}
-                columnWrapperStyle={styles.categoryRow}
-              />
-            </View>
+            {categories.length > 0 && (
+              <View style={styles.popularSection}>
+                <Text style={styles.sectionTitle}>Popular This Week</Text>
+                
+                <FlatList
+                  data={categories}
+                  renderItem={renderCategoryItem}
+                  keyExtractor={(item) => item.id}
+                  numColumns={2}
+                  scrollEnabled={false}
+                  showsVerticalScrollIndicator={false}
+                  contentContainerStyle={styles.categoriesContainer}
+                  columnWrapperStyle={styles.categoryRow}
+                />
+              </View>
+            )}
           </>
         )}
       </ScrollView>
@@ -333,7 +403,6 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 15,
     backgroundColor: 'white',
@@ -349,6 +418,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: '#333',
+    textAlign: 'center',
   },
 
   // SearchBar Styles
@@ -587,6 +657,31 @@ const styles = StyleSheet.create({
 
   productsContainer: {
     paddingRight: 20,
+  },
+
+  // Loading and Empty States
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 50,
+  },
+
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#666',
+  },
+
+  emptyContainer: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+
+  emptyText: {
+    fontSize: 14,
+    color: '#666',
+    fontStyle: 'italic',
   },
 });
 
