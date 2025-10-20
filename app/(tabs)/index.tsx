@@ -13,6 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from 'react-native-safe-area-context';
 import BannerSection from "../../components/BannerSection";
 import ProductCard from "../../components/ProductCard";
 import { useAuth } from "../../contexts/AuthContext";
@@ -171,23 +172,24 @@ export default function HomeScreen() {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      {/* Location + Notifications */}
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={{ flexDirection: "row", alignItems: "center" }} 
-          onPress={handleAddressPress}
-        >
-          <Ionicons name="location-sharp" size={20} color="#fff" />
-          <View>
-            <Text style={styles.locationText}>Current location</Text>
-            <Text style={styles.cityText}>
-              {getLocationText()}
-            </Text>
-          </View>
-          <Ionicons name="chevron-down" size={16} color="#fff" style={{ marginLeft: 5 }} />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={handleNotificationPress}>
+    <SafeAreaView style={styles.safeContainer}>
+      <ScrollView style={styles.container}>
+        {/* Location + Notifications */}
+        <View style={styles.header}>
+          <TouchableOpacity 
+            style={{ flexDirection: "row", alignItems: "center" }} 
+            onPress={handleAddressPress}
+          >
+            <Ionicons name="location-sharp" size={20} color="#fff" />
+            <View>
+              <Text style={styles.locationText}>Current location</Text>
+              <Text style={styles.cityText}>
+                {getLocationText()}
+              </Text>
+            </View>
+            <Ionicons name="chevron-down" size={16} color="#fff" style={{ marginLeft: 5 }} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleNotificationPress}>
           <Ionicons name="notifications-outline" size={24} color="#fff" />
         </TouchableOpacity>
       </View>
@@ -309,10 +311,12 @@ export default function HomeScreen() {
       {/* Exclusive Collection */}
       <BannerSection />
     </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeContainer: { flex: 1, backgroundColor: "#D13635" },
   container: { flex: 1, backgroundColor: "#fff" },
   header: {
     backgroundColor: "#D13635",

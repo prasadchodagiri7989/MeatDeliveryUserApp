@@ -5,7 +5,6 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -13,6 +12,8 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useCart } from '../contexts/CartContext';
 import { addressService } from '../services/addressService';
 import { Cart, CartItem, cartService } from '../services/cartService';
 import { couponService, CouponValidationResponse } from '../services/couponService';
@@ -565,6 +566,7 @@ const CartPage: React.FC = () => {
   const [suggestedProducts, setSuggestedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const { refreshCartCount } = useCart();
 
   // Load cart data on component mount
   useEffect(() => {
@@ -600,6 +602,8 @@ const CartPage: React.FC = () => {
       setUpdating(true);
       const updatedCart = await cartService.updateCartItem(itemId, quantity);
       setCart(updatedCart);
+      // Refresh cart count to update the badge
+      await refreshCartCount();
     } catch (error: any) {
       console.error('Error updating quantity:', error);
     } finally {
@@ -612,6 +616,8 @@ const CartPage: React.FC = () => {
       setUpdating(true);
       const updatedCart = await cartService.removeFromCart(itemId);
       setCart(updatedCart);
+      // Refresh cart count to update the badge
+      await refreshCartCount();
     } catch (error: any) {
       console.error('Error removing item:', error);
     } finally {
@@ -654,6 +660,8 @@ const CartPage: React.FC = () => {
       setUpdating(true);
       const updatedCart = await cartService.addToCart(productId, 1);
       setCart(updatedCart);
+      // Refresh cart count to update the badge
+      await refreshCartCount();
     } catch (error: any) {
       console.error('Error adding to cart:', error);
     } finally {

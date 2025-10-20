@@ -50,7 +50,7 @@
         "projectId": "2ba16e37-acef-4bf5-a74b-ab54e880e43e"
       },
       "apiPort": "5000",
-      "apiHost": "localhost",
+      "apiHost": "192.168.1.4",
       "productionApiUrl": "https://meat-delivery-backend-bowm.vercel.app/api",
       "productionApiHost": "meat-delivery-backend-bowm.vercel.app"
     }

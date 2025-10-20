@@ -1,94 +1,33 @@
 import { AntDesign, Ionicons } from '@expo/vector-icons';
-import React from 'react';
+import { useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
-    Alert,
-    FlatList,
-    SafeAreaView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { NotificationItem, notificationService } from '../services/notificationService';
+import { useToast } from './ui/ToastProvider';
 
 const RED_COLOR = '#D13635';
 const LIGHT_GRAY = '#f5f5f5';
 
-// Mock notifications data
-const notificationsData = [
-  {
-    id: '1',
-    title: 'Your order has been confirmed',
-    message: 'Beef Tenderloin and 2 other items are being prepared',
-    timestamp: '2 minutes ago',
-    type: 'order',
-    isRead: false,
-  },
-  {
-    id: '2',
-    title: 'Special offer on Chicken',
-    message: 'Get 20% off on all chicken products. Limited time offer!',
-    timestamp: '15 minutes ago',
-    type: 'offer',
-    isRead: false,
-  },
-  {
-    id: '3',
-    title: 'Order delivered successfully',
-    message: 'Your order #1234 has been delivered to Elamkulam, Kerala',
-    timestamp: '1 hour ago',
-    type: 'delivery',
-    isRead: true,
-  },
-  {
-    id: '4',
-    title: 'New products available',
-    message: 'Fresh seafood collection is now available in your area',
-    timestamp: '3 hours ago',
-    type: 'product',
-    isRead: true,
-  },
-  {
-    id: '5',
-    title: 'Payment successful',
-    message: 'Payment of ₹1,250 has been processed successfully',
-    timestamp: '5 hours ago',
-    type: 'payment',
-    isRead: true,
-  },
-  {
-    id: '6',
-    title: 'Welcome to Seja\'s!',
-    message: 'Thank you for joining us. Explore fresh meat delivery at your doorstep',
-    timestamp: '1 day ago',
-    type: 'welcome',
-    isRead: true,
-  },
-  {
-    id: '7',
-    title: 'Order out for delivery',
-    message: 'Your order #1233 is out for delivery. Expected delivery in 15 minutes',
-    timestamp: '1 day ago',
-    type: 'delivery',
-    isRead: true,
-  },
-  {
-    id: '8',
-    title: 'Flash sale alert',
-    message: 'Flash sale on premium cuts starting in 1 hour. Don\'t miss out!',
-    timestamp: '2 days ago',
-    type: 'offer',
-    isRead: true,
-  },
-];
-
 // NotificationsHeader Component
-const NotificationsHeader: React.FC = () => {
-  const handleBack = () => {
-    Alert.alert('Back', 'Going back to previous screen');
-  };
+interface NotificationsHeaderProps {
+  onMarkAllRead: () => void;
+  isLoading: boolean;
+}
 
-  const handleMarkAllRead = () => {
-    Alert.alert('Mark All Read', 'All notifications marked as read');
+const NotificationsHeader: React.FC<NotificationsHeaderProps> = ({ onMarkAllRead, isLoading }) => {
+  const router = useRouter();
+
+  const handleBack = () => {
+    router.back();
   };
 
   return (
@@ -99,15 +38,26 @@ const NotificationsHeader: React.FC = () => {
       
       <Text style={styles.headerTitle}>Notifications</Text>
       
-      <TouchableOpacity onPress={handleMarkAllRead}>
-        <Text style={styles.markAllReadText}>Mark all read</Text>
+      <TouchableOpacity 
+        onPress={onMarkAllRead}
+        disabled={isLoading}
+        style={[styles.markAllReadButton, isLoading && styles.disabledButton]}
+      >
+        <Text style={[styles.markAllReadText, isLoading && styles.disabledText]}>
+          Mark all read
+        </Text>
       </TouchableOpacity>
     </View>
   );
 };
 
 // NotificationItemCard Component
-const NotificationItemCard: React.FC<{ item: any }> = ({ item }) => {
+interface NotificationItemCardProps {
+  item: NotificationItem;
+  onPress: (notification: NotificationItem) => void;
+}
+
+const NotificationItemCard: React.FC<NotificationItemCardProps> = ({ item, onPress }) => {
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case 'order':
@@ -122,17 +72,35 @@ const NotificationItemCard: React.FC<{ item: any }> = ({ item }) => {
         return <Ionicons name="card-outline" size={20} color="#9C27B0" />;
       case 'welcome':
         return <Ionicons name="heart-outline" size={20} color="#E91E63" />;
+      case 'system_announcement':
+        return <Ionicons name="megaphone-outline" size={20} color="#FF6B35" />;
       default:
         return <Ionicons name="notifications-outline" size={20} color="#666" />;
     }
   };
 
-  const handleNotificationPress = () => {
-    Alert.alert('Notification', `You tapped: ${item.title}`);
+  const formatTimestamp = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInMs = now.getTime() - date.getTime();
+    const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    const diffInDays = Math.floor(diffInHours / 24);
+
+    if (diffInMinutes < 1) return 'Just now';
+    if (diffInMinutes < 60) return `${diffInMinutes} minute${diffInMinutes > 1 ? 's' : ''} ago`;
+    if (diffInHours < 24) return `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`;
+    if (diffInDays < 7) return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
+    
+    return date.toLocaleDateString();
+  };
+
+  const handlePress = () => {
+    onPress(item);
   };
 
   return (
-    <TouchableOpacity style={styles.notificationItem} onPress={handleNotificationPress}>
+    <TouchableOpacity style={styles.notificationItem} onPress={handlePress}>
       {!item.isRead && <View style={styles.unreadIndicator} />}
       
       <View style={styles.iconContainer}>
@@ -146,7 +114,7 @@ const NotificationItemCard: React.FC<{ item: any }> = ({ item }) => {
         <Text style={styles.notificationMessage} numberOfLines={2}>
           {item.message}
         </Text>
-        <Text style={styles.timestamp}>{item.timestamp}</Text>
+        <Text style={styles.timestamp}>{formatTimestamp(item.createdAt)}</Text>
       </View>
       
       <View style={styles.chevronContainer}>
@@ -158,37 +126,201 @@ const NotificationItemCard: React.FC<{ item: any }> = ({ item }) => {
 
 // Main NotificationsScreen Component
 const NotificationsScreen: React.FC = () => {
-  const renderNotificationItem = ({ item }: { item: any }) => (
-    <NotificationItemCard item={item} />
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [markingAllRead, setMarkingAllRead] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMoreData, setHasMoreData] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  
+  const { showSuccess, showError } = useToast();
+
+  // Load notifications on component mount
+  useEffect(() => {
+    loadNotifications();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const loadNotifications = useCallback(async (page: number = 1, append: boolean = false) => {
+    try {
+      if (page === 1) {
+        setLoading(true);
+      } else {
+        setLoadingMore(true);
+      }
+
+      const response = await notificationService.getNotifications({
+        page,
+        limit: 20,
+      });
+
+      if (response.success) {
+        const newNotifications = response.data.notifications;
+        
+        if (append && page > 1) {
+          setNotifications(prev => [...prev, ...newNotifications]);
+        } else {
+          setNotifications(newNotifications);
+        }
+        
+        setHasMoreData(response.data.hasNextPage);
+        setCurrentPage(page);
+      } else {
+        showError('Failed to load notifications');
+      }
+    } catch (error: any) {
+      console.error('Error loading notifications:', error);
+      showError(error.message || 'Failed to load notifications');
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+      setRefreshing(false);
+    }
+  }, [showError]);
+
+  const handleRefresh = useCallback(() => {
+    setRefreshing(true);
+    setCurrentPage(1);
+    setHasMoreData(true);
+    loadNotifications(1);
+  }, [loadNotifications]);
+
+  const handleLoadMore = () => {
+    if (!loadingMore && hasMoreData) {
+      loadNotifications(currentPage + 1, true);
+    }
+  };
+
+  const handleNotificationPress = async (notification: NotificationItem) => {
+    try {
+      // Mark as read if not already read
+      if (!notification.isRead) {
+        await notificationService.markAsRead(notification._id);
+        
+        // Update local state
+        setNotifications(prev => 
+          prev.map(n => 
+            n._id === notification._id 
+              ? { ...n, isRead: true }
+              : n
+          )
+        );
+      }
+
+      // Navigate to relevant screen based on notification type
+      if (notification.type === 'order' && notification.metadata?.orderId) {
+        // Navigate to order details - adjust route as per your app structure
+        showSuccess(`Order notification: ${notification.title}`);
+      } else if (notification.type === 'product' && notification.metadata?.productId) {
+        // Navigate to product details
+        showSuccess(`Product notification: ${notification.title}`);
+      } else {
+        // For other notifications, show a simple success message
+        showSuccess(`Notification: ${notification.title}`);
+      }
+      
+    } catch (error: any) {
+      console.error('Error handling notification press:', error);
+      showError('Failed to open notification');
+    }
+  };
+
+  const handleMarkAllRead = async () => {
+    try {
+      setMarkingAllRead(true);
+      const response = await notificationService.markAllAsRead();
+      
+      if (response.success) {
+        // Update all notifications to read
+        setNotifications(prev => 
+          prev.map(n => ({ ...n, isRead: true }))
+        );
+        showSuccess('All notifications marked as read');
+      } else {
+        showError('Failed to mark all notifications as read');
+      }
+    } catch (error: any) {
+      console.error('Error marking all as read:', error);
+      showError(error.message || 'Failed to mark all notifications as read');
+    } finally {
+      setMarkingAllRead(false);
+    }
+  };
+
+  const renderNotificationItem = ({ item }: { item: NotificationItem }) => (
+    <NotificationItemCard 
+      item={item} 
+      onPress={handleNotificationPress}
+    />
   );
 
   const renderSeparator = () => <View style={styles.separator} />;
 
-  const renderEmptyState = () => (
-    <View style={styles.emptyState}>
-      <Ionicons name="notifications-off-outline" size={60} color="#ccc" />
-      <Text style={styles.emptyStateTitle}>No notifications</Text>
-      <Text style={styles.emptyStateMessage}>
-        When you receive notifications, they will appear here
-      </Text>
-    </View>
-  );
+  const renderEmptyState = () => {
+    if (loading) {
+      return (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={RED_COLOR} />
+          <Text style={styles.loadingText}>Loading notifications...</Text>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.emptyState}>
+        <Ionicons name="notifications-off-outline" size={60} color="#ccc" />
+        <Text style={styles.emptyStateTitle}>No notifications</Text>
+        <Text style={styles.emptyStateMessage}>
+          When you receive notifications, they will appear here
+        </Text>
+      </View>
+    );
+  };
+
+  const renderFooter = () => {
+    if (!loadingMore) return null;
+    
+    return (
+      <View style={styles.footerLoader}>
+        <ActivityIndicator size="small" color={RED_COLOR} />
+        <Text style={styles.loadingText}>Loading more...</Text>
+      </View>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
-      <NotificationsHeader />
+      <NotificationsHeader 
+        onMarkAllRead={handleMarkAllRead}
+        isLoading={markingAllRead}
+      />
       
       {/* Notifications List */}
       <FlatList
-        data={notificationsData}
+        data={notifications}
         renderItem={renderNotificationItem}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item._id}
         ItemSeparatorComponent={renderSeparator}
         ListEmptyComponent={renderEmptyState}
+        ListFooterComponent={renderFooter}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.listContainer}
+        contentContainerStyle={[
+          styles.listContainer,
+          notifications.length === 0 && styles.emptyListContainer
+        ]}
         style={styles.flatList}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            colors={[RED_COLOR]}
+            tintColor={RED_COLOR}
+          />
+        }
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.1}
       />
     </SafeAreaView>
   );
@@ -228,6 +360,18 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 
+  markAllReadButton: {
+    padding: 4,
+  },
+
+  disabledButton: {
+    opacity: 0.5,
+  },
+
+  disabledText: {
+    color: '#999',
+  },
+
   // FlatList Styles
   flatList: {
     flex: 1,
@@ -235,6 +379,30 @@ const styles = StyleSheet.create({
 
   listContainer: {
     paddingVertical: 10,
+  },
+
+  emptyListContainer: {
+    flexGrow: 1,
+  },
+
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 100,
+  },
+
+  loadingText: {
+    fontSize: 16,
+    color: '#666',
+    marginTop: 10,
+  },
+
+  footerLoader: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 20,
   },
 
   separator: {

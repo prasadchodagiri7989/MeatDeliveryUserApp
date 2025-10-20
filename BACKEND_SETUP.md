@@ -18,7 +18,7 @@ Edit `config/api.ts`:
 ```typescript
 // For local development (port 5000)
 development: {
-  API_HOST: 'localhost',
+  API_HOST: '192.168.1.4',
   API_PORT: '5000',
 },
 

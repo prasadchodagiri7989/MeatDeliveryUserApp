@@ -1,7 +1,19 @@
-// app/auth/register.tsx
+// app/auth/otp.tsx
 import OTPVerificationScreen from '@/components/OTPVerificationScreen';
-import React from 'react';
+import { StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-export default function LoginPage() {
-  return <OTPVerificationScreen />;
+export default function OTPPage() {
+  return (
+    <SafeAreaView style={styles.container}>
+      <OTPVerificationScreen />
+    </SafeAreaView>
+  );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+});

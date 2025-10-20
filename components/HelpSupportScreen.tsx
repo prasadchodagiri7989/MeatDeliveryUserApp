@@ -1,14 +1,14 @@
-import React from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  SafeAreaView,
-  Alert,
-} from 'react-native';
 import { AntDesign, Feather, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import React from 'react';
+import {
+    Alert,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 // Color constants
 const DARK_GRAY = '#333';
@@ -49,7 +49,7 @@ const HelpSupportScreen: React.FC = () => {
         },
         {
           text: 'Phone',
-          onPress: () => Alert.alert('Phone Support', 'Calling support: +91-1800-XXX-XXXX'),
+          onPress: () => Alert.alert('Phone Support', 'Calling support: +91 9704883731'),
         },
         {
           text: 'Cancel',
@@ -172,12 +172,12 @@ const HelpSupportScreen: React.FC = () => {
         <View style={styles.contactDetails}>
           <View style={styles.contactItem}>
             <Feather name="phone" size={18} color={MEDIUM_GRAY} />
-            <Text style={styles.contactText}>+91-1800-XXX-XXXX</Text>
+            <Text style={styles.contactText}>+91 9704883731</Text>
           </View>
           
           <View style={styles.contactItem}>
             <Feather name="mail" size={18} color={MEDIUM_GRAY} />
-            <Text style={styles.contactText}>support@sejasabsolutefresh.com</Text>
+            <Text style={styles.contactText}>sejasabsolutefresh@gmail.com</Text>
           </View>
           
           <View style={styles.contactItem}>

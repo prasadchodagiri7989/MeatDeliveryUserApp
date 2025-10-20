@@ -3,13 +3,13 @@ import { useRouter } from 'expo-router';
 import React from 'react';
 import {
     Linking,
-    SafeAreaView,
     ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
     View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 // Color constants
 const PRIMARY_RED = '#D32F2F';
@@ -27,7 +27,7 @@ const supportOptions = [
     icon: 'phone',
     iconType: 'feather',
     action: 'call',
-    value: '+91 9876543210',
+    value: '+91 9704883731',
     color: GREEN_COLOR,
   },
   {
@@ -37,7 +37,7 @@ const supportOptions = [
     icon: 'message-circle',
     iconType: 'feather',
     action: 'whatsapp',
-    value: '+919876543210',
+    value: '+919704883731',
     color: '#25D366',
   },
   {
@@ -47,7 +47,7 @@ const supportOptions = [
     icon: 'mail',
     iconType: 'feather',
     action: 'email',
-    value: 'support@sejasabsolutefresh.com',
+    value: 'sejasabsolutefresh@gmail.com',
     color: '#1976D2',
   },
 ];

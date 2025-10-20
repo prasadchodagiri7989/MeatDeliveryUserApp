@@ -3,18 +3,19 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
     ActivityIndicator,
-    Alert,
     Dimensions,
     Image,
-    SafeAreaView,
     ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
     View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useCart } from '../contexts/CartContext';
 import { cartService } from '../services/cartService';
 import { Product, productService } from '../services/productService';
+import { useToast } from './ui/ToastProvider';
 
 // Get screen dimensions
 const { width: screenWidth } = Dimensions.get('window');
@@ -34,6 +35,8 @@ interface ProductDetailScreenProps {
 const ProductDetailScreen: React.FC<ProductDetailScreenProps> = () => {
   const router = useRouter();
   const { id: productId } = useLocalSearchParams<{ id: string }>();
+  const { refreshCartCount } = useCart();
+  const { showSuccess, showError } = useToast();
   
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -88,30 +91,17 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = () => {
       
       // Cart service returns the cart object directly
       if (cartResponse) {
-        Alert.alert(
-          'Added to Cart',
-          `${quantity}x ${product.name} has been added to your cart.`,
-          [
-            {
-              text: 'Continue Shopping',
-              style: 'default',
-            },
-            {
-              text: 'View Cart',
-              style: 'default',
-              onPress: () => router.push('/(tabs)/cart'),
-            },
-          ]
-        );
+        // Refresh cart count to update the badge
+        await refreshCartCount();
+        
+        // Show success toast
+        showSuccess(`${quantity}x ${product.name} added to cart!`);
       } else {
         throw new Error('Failed to add item to cart');
       }
     } catch (error: any) {
       console.error('Error adding to cart:', error);
-      Alert.alert(
-        'Error', 
-        error.message || 'Failed to add item to cart. Please try again.'
-      );
+      showError('Failed to add item to cart. Please try again.');
     } finally {
       setAddingToCart(false);
     }

@@ -5,7 +5,6 @@ import {
   ActivityIndicator,
   FlatList,
   Image,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -13,8 +12,11 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useCart } from '../contexts/CartContext';
 import { cartService } from '../services/cartService';
 import { Product, productService } from '../services/productService';
+import { useToast } from './ui/ToastProvider';
 
 const RED_COLOR = '#D13635';
 const LIGHT_GRAY = '#f5f5f5';
@@ -198,6 +200,8 @@ const CategoriesPage: React.FC = () => {
   const [categories, setCategories] = useState<CategoryWithProducts[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const { refreshCartCount } = useCart();
+  const { showSuccess, showError } = useToast();
 
   // Fetch categories and their products
   useEffect(() => {
@@ -252,8 +256,13 @@ const CategoriesPage: React.FC = () => {
   const handleAddToCart = async (product: Product) => {
     try {
       await cartService.addToCart(product._id || product.id, 1);
+      // Refresh cart count to update the badge
+      await refreshCartCount();
+      // Show success toast
+      showSuccess(`${product.name} added to cart!`);
     } catch (error) {
       console.error('Error adding to cart:', error);
+      showError('Failed to add item to cart. Please try again.');
     }
   };
 
