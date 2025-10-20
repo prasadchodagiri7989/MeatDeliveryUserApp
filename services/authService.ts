@@ -110,20 +110,32 @@ export interface ChangePasswordData {
 export interface AuthResponse {
   success: boolean;
   message: string;
-  data: {
-    user: {
+  token: string;
+  user: {
+    _id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    savedAddresses?: {
+      label: string;
+      street: string;
+      city: string;
+      state: string;
+      zipCode: string;
+      country: string;
+      landmark?: string;
+      isDefault: boolean;
       _id: string;
-      firstName: string;
-      lastName: string;
-      email: string;
-      phone: string;
-      address?: string;
-      role: string;
-      isActive: boolean;
-      phoneVerified: boolean;
-      lastLogin?: string;
-    };
-    token: string;
+    }[];
+    role: string;
+    isActive: boolean;
+    otpIsVerified: boolean;
+    otpAttempts: number;
+    phoneVerified: boolean;
+    createdAt: string;
+    updatedAt: string;
+    __v: number;
   };
 }
 
@@ -145,8 +157,8 @@ export const authService = {
       body: JSON.stringify(loginData),
     });
     
-    if (response.success && response.data.token) {
-      await setAuthToken(response.data.token);
+    if (response.success && response.token) {
+      await setAuthToken(response.token);
     }
     
     return response;
@@ -159,8 +171,8 @@ export const authService = {
       body: JSON.stringify(registerData),
     });
     
-    if (response.success && response.data.token) {
-      await setAuthToken(response.data.token);
+    if (response.success && response.token) {
+      await setAuthToken(response.token);
     }
     
     return response;

@@ -62,31 +62,35 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const isAuth = await authService.isAuthenticated();
       
       if (isAuth) {
-        // Try to get user data from AsyncStorage first
+        // Try to validate token by calling the API
         try {
-          const userData = await AsyncStorage.getItem('userData');
-          if (userData) {
-            setUser(JSON.parse(userData));
-          } else {
-            // Fallback: get user profile from API
-            const response = await authService.getMe();
-            if (response.success) {
-              const user = response.data?.user || (response as any).user;
-              if (user) {
-                setUser(user);
-                // Save to AsyncStorage for next time
-                await AsyncStorage.setItem('userData', JSON.stringify(user));
-              }
+          const response = await authService.getMe();
+          if (response.success) {
+            const user = response.user;
+            if (user) {
+              setUser(user);
+              // Save to AsyncStorage for next time
+              await AsyncStorage.setItem('userData', JSON.stringify(user));
             }
+          } else {
+            // Token is invalid, clear it
+            await authService.logout();
+            await AsyncStorage.removeItem('userData');
           }
         } catch (error) {
-          console.error('Failed to get user data:', error);
-          // If both storage and API fail, logout
+          console.error('Failed to validate token:', error);
+          // Token is invalid or expired, clear it
           await authService.logout();
+          await AsyncStorage.removeItem('userData');
         }
+      } else {
+        // No token, clear any cached user data
+        await AsyncStorage.removeItem('userData');
       }
     } catch (error) {
       console.error('Auth check error:', error);
+      // On any error, clear authentication state
+      await AsyncStorage.removeItem('userData');
     } finally {
       setIsLoading(false);
     }
@@ -132,7 +136,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       if (response.success) {
         // Get the updated user data from response
-        const updatedUserData = response.data?.user || (response as any).user;
+        const updatedUserData = response.user;
         
         if (updatedUserData) {
           setUser(updatedUserData);

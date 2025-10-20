@@ -4,14 +4,14 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Image,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Image,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import BannerSection from "../../components/BannerSection";
@@ -31,7 +31,6 @@ export default function HomeScreen() {
   const [instantProducts, setInstantProducts] = useState<Product[]>([]);
   const [loadingInstant, setLoadingInstant] = useState(true);
   const [currentAddress, setCurrentAddress] = useState<Address | null>(null);
-  const [loadingAddress, setLoadingAddress] = useState(true);
 
   // Fetch premium products on component mount
   useEffect(() => {
@@ -78,22 +77,17 @@ export default function HomeScreen() {
   useEffect(() => {
     const fetchDefaultAddress = async () => {
       try {
-        setLoadingAddress(true);
         const defaultAddress = await addressService.getDefaultAddress();
         setCurrentAddress(defaultAddress);
       } catch (error) {
         console.error("Error fetching default address:", error);
         setCurrentAddress(null);
-      } finally {
-        setLoadingAddress(false);
       }
     };
 
     // Only fetch address if user is authenticated
     if (user) {
       fetchDefaultAddress();
-    } else {
-      setLoadingAddress(false);
     }
   }, [user]);
 
@@ -316,7 +310,7 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeContainer: { flex: 1, backgroundColor: "#D13635" },
+  safeContainer: { flex: 1, backgroundColor: "#fff" },
   container: { flex: 1, backgroundColor: "#fff" },
   header: {
     backgroundColor: "#D13635",

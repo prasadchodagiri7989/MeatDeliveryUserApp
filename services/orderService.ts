@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getCurrentConfig } from '../config/api';
+import { cartService } from './cartService';
 
 const API_BASE_URL = getCurrentConfig().API_URL;
 
@@ -305,7 +306,6 @@ class OrderService {
   async createOrderFromCart(savedAddressId: string, paymentMethod: string = 'cash-on-delivery', specialInstructions?: string): Promise<Order> {
     try {
       // First, get the current cart to extract items
-      const { cartService } = await import('./cartService');
       const cart = await cartService.getCart();
       
       console.log('Cart retrieved for order:', JSON.stringify(cart, null, 2));

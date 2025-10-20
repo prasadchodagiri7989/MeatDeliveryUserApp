@@ -1,14 +1,14 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Alert,
+    Image,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { authService } from '../services/authService';
@@ -147,9 +147,9 @@ const OTPVerificationScreen: React.FC = () => {
         if (response.success) {
           console.log('OTP verification successful');
           
-          // Handle both response structures - nested data or direct properties
-          const user = response.data?.user || (response as any).user;
-          const token = response.data?.token || (response as any).token;
+          // Get user and token from response
+          const user = response.user;
+          const token = response.token;
           
           if (user && token) {
             console.log('User and token found, updating auth context');
