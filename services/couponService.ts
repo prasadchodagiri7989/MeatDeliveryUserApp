@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getCurrentConfig } from '../config/api';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = getCurrentConfig().API_URL;
 
 export interface Coupon {
   _id: string;

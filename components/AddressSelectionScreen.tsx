@@ -3,7 +3,6 @@ import { router, useFocusEffect } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
     ActivityIndicator,
-    Alert,
     SafeAreaView,
     ScrollView,
     StyleSheet,
@@ -15,12 +14,14 @@ import {
 import { Address, addressService } from '../services/addressService';
 import { cartService } from '../services/cartService';
 import { orderService } from '../services/orderService';
+import { useToast } from './ui/ToastProvider';
 
 const RED_COLOR = '#D13635';
 const LIGHT_GRAY = '#f5f5f5';
 const GREEN_COLOR = '#4CAF50';
 
 const AddressSelectionScreen: React.FC = () => {
+  const toast = useToast();
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -86,11 +87,6 @@ const AddressSelectionScreen: React.FC = () => {
       
       setAddresses([fallbackAddress]);
       setSelectedAddressId(fallbackAddress._id);
-      
-      Alert.alert(
-        'Notice', 
-        'Could not load saved addresses. Using default address.'
-      );
     } finally {
       setLoading(false);
     }
@@ -118,48 +114,35 @@ const AddressSelectionScreen: React.FC = () => {
     router.push('/add-address');
   };
 
-  const handleDeleteAddress = (addressId: string) => {
+  const handleDeleteAddress = async (addressId: string) => {
     const addressToDelete = addresses.find(addr => addr._id === addressId);
     if (!addressToDelete) return;
 
-    Alert.alert(
-      'Delete Address',
-      `Are you sure you want to delete "${addressToDelete.label}" address?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const updatedAddresses = await addressService.deleteAddress(addressId);
-              setAddresses(updatedAddresses);
-              
-              // If deleted address was selected, select another one
-              if (selectedAddressId === addressId) {
-                const defaultAddress = updatedAddresses.find(addr => addr.isDefault) || updatedAddresses[0];
-                setSelectedAddressId(defaultAddress?._id || null);
-              }
-              
-              Alert.alert('Success', 'Address deleted successfully');
-            } catch (error) {
-              console.error('Error deleting address:', error);
-              Alert.alert('Error', 'Failed to delete address. Please try again.');
-            }
-          }
-        }
-      ]
-    );
+    try {
+      const updatedAddresses = await addressService.deleteAddress(addressId);
+      setAddresses(updatedAddresses);
+      
+      // If deleted address was selected, select another one
+      if (selectedAddressId === addressId) {
+        const defaultAddress = updatedAddresses.find(addr => addr.isDefault) || updatedAddresses[0];
+        setSelectedAddressId(defaultAddress?._id || null);
+      }
+      
+      toast.showSuccess('Address deleted successfully');
+    } catch (error) {
+      console.error('Error deleting address:', error);
+      toast.showError('Failed to delete address. Please try again.');
+    }
   };
 
   const handlePlaceOrder = async () => {
     if (!selectedAddressId) {
-      Alert.alert('Error', 'Please select a delivery address');
+      toast.showError('Please select a delivery address');
       return;
     }
 
     if (cartTotal === 0) {
-      Alert.alert('Error', 'Your cart is empty');
+      toast.showError('Your cart is empty');
       return;
     }
 
@@ -194,7 +177,7 @@ const AddressSelectionScreen: React.FC = () => {
     } catch (error) {
       console.error('Error placing order:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to place order. Please try again.';
-      Alert.alert('Error', errorMessage);
+      toast.showError(errorMessage);
     } finally {
       setIsPlacingOrder(false);
     }

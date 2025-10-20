@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getCurrentConfig } from '../config/api';
 
-const BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = getCurrentConfig().API_URL;
 
 export interface Address {
   _id: string;
@@ -53,7 +54,7 @@ class AddressService {
   async getSavedAddresses(): Promise<Address[]> {
     try {
       const headers = await this.getAuthHeaders();
-      const response = await fetch(`${BASE_URL}/addresses`, {
+      const response = await fetch(`${API_BASE_URL}/addresses`, {
         method: 'GET',
         headers,
       });
@@ -75,7 +76,7 @@ class AddressService {
   async addAddress(addressData: AddAddressRequest): Promise<Address> {
     try {
       const headers = await this.getAuthHeaders();
-      const response = await fetch(`${BASE_URL}/addresses`, {
+      const response = await fetch(`${API_BASE_URL}/addresses`, {
         method: 'POST',
         headers,
         body: JSON.stringify(addressData),
@@ -102,7 +103,7 @@ class AddressService {
   async updateAddress(addressId: string, addressData: AddAddressRequest): Promise<Address> {
     try {
       const headers = await this.getAuthHeaders();
-      const response = await fetch(`${BASE_URL}/addresses/${addressId}`, {
+      const response = await fetch(`${API_BASE_URL}/addresses/${addressId}`, {
         method: 'PUT',
         headers,
         body: JSON.stringify(addressData),
@@ -129,7 +130,7 @@ class AddressService {
   async deleteAddress(addressId: string): Promise<Address[]> {
     try {
       const headers = await this.getAuthHeaders();
-      const response = await fetch(`${BASE_URL}/addresses/${addressId}`, {
+      const response = await fetch(`${API_BASE_URL}/addresses/${addressId}`, {
         method: 'DELETE',
         headers,
       });
@@ -151,7 +152,7 @@ class AddressService {
   async setDefaultAddress(addressId: string): Promise<Address[]> {
     try {
       const headers = await this.getAuthHeaders();
-      const response = await fetch(`${BASE_URL}/addresses/${addressId}/default`, {
+      const response = await fetch(`${API_BASE_URL}/addresses/${addressId}/default`, {
         method: 'PATCH',
         headers,
       });
@@ -173,7 +174,7 @@ class AddressService {
   async getDefaultAddress(): Promise<Address | null> {
     try {
       const headers = await this.getAuthHeaders();
-      const response = await fetch(`${BASE_URL}/addresses/default`, {
+      const response = await fetch(`${API_BASE_URL}/addresses/default`, {
         method: 'GET',
         headers,
       });

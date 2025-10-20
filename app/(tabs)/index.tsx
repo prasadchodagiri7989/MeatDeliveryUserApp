@@ -2,7 +2,7 @@ import BannerCarousel from "@/components/BannerCarousel";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -16,6 +16,7 @@ import {
 import BannerSection from "../../components/BannerSection";
 import ProductCard from "../../components/ProductCard";
 import { useAuth } from "../../contexts/AuthContext";
+import { Address, addressService } from "../../services/addressService";
 import { Product, productService } from "../../services/productService";
 
 
@@ -28,6 +29,8 @@ export default function HomeScreen() {
   const [loadingPremium, setLoadingPremium] = useState(true);
   const [instantProducts, setInstantProducts] = useState<Product[]>([]);
   const [loadingInstant, setLoadingInstant] = useState(true);
+  const [currentAddress, setCurrentAddress] = useState<Address | null>(null);
+  const [loadingAddress, setLoadingAddress] = useState(true);
 
   // Fetch premium products on component mount
   useEffect(() => {
@@ -70,8 +73,35 @@ export default function HomeScreen() {
     fetchInstantProducts();
   }, []);
 
+  // Fetch user's default address
+  useEffect(() => {
+    const fetchDefaultAddress = async () => {
+      try {
+        setLoadingAddress(true);
+        const defaultAddress = await addressService.getDefaultAddress();
+        setCurrentAddress(defaultAddress);
+      } catch (error) {
+        console.error("Error fetching default address:", error);
+        setCurrentAddress(null);
+      } finally {
+        setLoadingAddress(false);
+      }
+    };
+
+    // Only fetch address if user is authenticated
+    if (user) {
+      fetchDefaultAddress();
+    } else {
+      setLoadingAddress(false);
+    }
+  }, [user]);
+
   const handleNotificationPress = () => {
     router.push('/other/notifications');
+  };
+
+  const handleAddressPress = () => {
+    router.push('/address-selection');
   };
 
   const handleSearch = () => {
@@ -94,6 +124,21 @@ export default function HomeScreen() {
 
   // Helper function to format user location
   const getLocationText = () => {
+    // If we have a fetched address from backend, use it
+    if (currentAddress) {
+      const { city, state, zipCode, street } = currentAddress;
+      if (city && state) {
+        return `${city}, ${state}`;
+      } else if (city && zipCode) {
+        return `${city}, ${zipCode}`;
+      } else if (city) {
+        return city;
+      } else if (street) {
+        return street;
+      }
+    }
+
+    // Fallback to user profile data if available
     if (user?.city && user?.zipCode) {
       return `${user.city}, ${user.zipCode}`;
     }
@@ -121,14 +166,18 @@ export default function HomeScreen() {
       }
     }
     
-    return "Elamkulam, Kerala";
+    // Default fallback - you may want to change this to your actual service area
+    return "Select Location";
   };
 
   return (
     <ScrollView style={styles.container}>
       {/* Location + Notifications */}
       <View style={styles.header}>
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
+        <TouchableOpacity 
+          style={{ flexDirection: "row", alignItems: "center" }} 
+          onPress={handleAddressPress}
+        >
           <Ionicons name="location-sharp" size={20} color="#fff" />
           <View>
             <Text style={styles.locationText}>Current location</Text>
@@ -136,7 +185,8 @@ export default function HomeScreen() {
               {getLocationText()}
             </Text>
           </View>
-        </View>
+          <Ionicons name="chevron-down" size={16} color="#fff" style={{ marginLeft: 5 }} />
+        </TouchableOpacity>
         <TouchableOpacity onPress={handleNotificationPress}>
           <Ionicons name="notifications-outline" size={24} color="#fff" />
         </TouchableOpacity>

@@ -1,15 +1,14 @@
 import { AntDesign, Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
-    Alert,
-    FlatList,
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  FlatList,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
 const RED_COLOR = '#D13635';
@@ -65,7 +64,6 @@ const SearchScreen: React.FC = () => {
   const [searches, setSearches] = useState(recentSearches);
 
   const handleBack = () => {
-    Alert.alert('Back', 'Going back to previous screen');
     // Add navigation logic here
   };
 
@@ -74,7 +72,6 @@ const SearchScreen: React.FC = () => {
   };
 
   const handleAddProduct = (productId: string) => {
-    Alert.alert('Add Product', `Added product ${productId} to cart`);
   };
 
   const renderRecentSearchTag = ({ item }: { item: typeof recentSearches[0] }) => (

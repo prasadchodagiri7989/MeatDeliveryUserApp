@@ -3,7 +3,6 @@ import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
     ActivityIndicator,
-    Alert,
     KeyboardAvoidingView,
     Platform,
     SafeAreaView,
@@ -79,7 +78,6 @@ const AddAddressScreen: React.FC<AddAddressScreenProps> = ({ onAddressAdded }) =
 
   const handleSaveAddress = async () => {
     if (!validateForm()) {
-      Alert.alert('Validation Error', 'Please fill in all required fields correctly');
       return;
     }
 
@@ -93,27 +91,9 @@ const AddAddressScreen: React.FC<AddAddressScreenProps> = ({ onAddressAdded }) =
 
       await addressService.addAddress(addressData);
       
-      Alert.alert(
-        'Success', 
-        'Address added successfully!',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              if (onAddressAdded) {
-                onAddressAdded();
-              }
-              router.back();
-            }
-          }
-        ]
-      );
+
     } catch (error) {
       console.error('Error adding address:', error);
-      Alert.alert(
-        'Error', 
-        error instanceof Error ? error.message : 'Failed to add address. Please try again.'
-      );
     } finally {
       setIsLoading(false);
     }

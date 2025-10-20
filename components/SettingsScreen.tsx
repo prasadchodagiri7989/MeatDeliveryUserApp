@@ -1,15 +1,14 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  SafeAreaView,
-  Switch,
-  Alert,
-} from 'react-native';
 import { AntDesign, Feather, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import {
+  SafeAreaView,
+  StyleSheet,
+  Switch,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
 // Color constants
 const PRIMARY_RED = '#D32F2F';
@@ -47,34 +46,28 @@ const SettingsScreen: React.FC = () => {
   // Handle dark mode toggle
   const handleDarkModeToggle = () => {
     setDarkModeEnabled(!darkModeEnabled);
-    Alert.alert(
-      'Theme Changed',
-      `${!darkModeEnabled ? 'Dark' : 'Light'} mode ${!darkModeEnabled ? 'enabled' : 'disabled'}`
-    );
+
   };
 
   // Handle app language
   const handleAppLanguage = () => {
-    Alert.alert('App Language', 'Opening language selection...');
+    
   };
 
   // Handle accessibility features
   const handleAccessibilityFeatures = () => {
-    Alert.alert('Accessibility Features', 'Opening accessibility settings...');
+    
   };
 
   // Handle notification settings
   const handleNotificationSettings = () => {
-    Alert.alert('Notification Settings', 'Opening notification and sound settings...');
+    
   };
 
   // Handle auto-update toggle
   const handleAutoUpdateToggle = () => {
     setAutoUpdateEnabled(!autoUpdateEnabled);
-    Alert.alert(
-      'Auto-Update Settings',
-      `Auto-update ${!autoUpdateEnabled ? 'enabled' : 'disabled'}`
-    );
+
   };
 
   // Settings data

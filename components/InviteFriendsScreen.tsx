@@ -1,14 +1,13 @@
-import React from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  SafeAreaView,
-  Alert,
-} from 'react-native';
 import { AntDesign } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import React from 'react';
+import {
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
 // Color constants
 const PRIMARY_RED = '#D32F2F';
@@ -24,32 +23,7 @@ const InviteFriendsScreen: React.FC = () => {
 
   // Handle send invite link
   const handleSendInviteLink = () => {
-    Alert.alert(
-      'Send Invite Link',
-      'Choose how you want to share your invite link:',
-      [
-        {
-          text: 'WhatsApp',
-          onPress: () => Alert.alert('WhatsApp', 'Opening WhatsApp to share invite link...'),
-        },
-        {
-          text: 'SMS',
-          onPress: () => Alert.alert('SMS', 'Opening SMS to share invite link...'),
-        },
-        {
-          text: 'Copy Link',
-          onPress: () => Alert.alert('Link Copied', 'Invite link copied to clipboard!'),
-        },
-        {
-          text: 'More Options',
-          onPress: () => Alert.alert('Share', 'Opening share menu...'),
-        },
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-      ]
-    );
+    // TODO: Implement actual invite functionality
   };
 
   return (

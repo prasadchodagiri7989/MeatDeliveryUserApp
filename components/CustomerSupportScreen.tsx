@@ -2,7 +2,6 @@ import { AntDesign, Feather, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import {
-    Alert,
     Linking,
     SafeAreaView,
     ScrollView,
@@ -51,16 +50,6 @@ const supportOptions = [
     value: 'support@sejasabsolutefresh.com',
     color: '#1976D2',
   },
-  {
-    id: '4',
-    title: 'Live Chat',
-    description: 'Start a live chat session',
-    icon: 'chat',
-    iconType: 'material',
-    action: 'chat',
-    value: '',
-    color: PRIMARY_RED,
-  },
 ];
 
 // Operating hours data
@@ -100,11 +89,8 @@ const SupportOption: React.FC<SupportOptionProps> = ({
       case 'email':
         Linking.openURL(`mailto:${value}?subject=Customer Support Request`);
         break;
-      case 'chat':
-        Alert.alert('Live Chat', 'Live chat feature will be available soon!');
-        break;
       default:
-        Alert.alert('Support', `Contact option: ${title}`);
+        console.log(`Contact option: ${title}`);
     }
   };
 

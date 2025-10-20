@@ -1,15 +1,14 @@
-import React from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  SafeAreaView,
-  ScrollView,
-  Alert,
-} from 'react-native';
 import { AntDesign, Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import React from 'react';
+import {
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
 // Color constants
 const PRIMARY_RED = '#D32F2F';
@@ -54,33 +53,16 @@ const AddressManagementScreen: React.FC = () => {
 
   // Handle add new address
   const handleAddNew = () => {
-    Alert.alert('Add New Address', 'Opening add new address form...');
+   
   };
 
   // Handle edit address
   const handleEditAddress = (addressId: string, name: string) => {
-    Alert.alert('Edit Address', `Editing address for ${name}`);
   };
 
   // Handle delete address
   const handleDeleteAddress = (addressId: string, name: string) => {
-    Alert.alert(
-      'Delete Address',
-      `Are you sure you want to delete ${name}'s address?`,
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            Alert.alert('Deleted', `${name}'s address has been deleted.`);
-          },
-        },
-      ]
-    );
+
   };
 
   // Render address card

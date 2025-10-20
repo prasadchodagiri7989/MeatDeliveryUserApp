@@ -4,7 +4,6 @@ import { router } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Image,
   SafeAreaView,
   ScrollView,
@@ -14,6 +13,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import { addressService } from '../services/addressService';
 import { Cart, CartItem, cartService } from '../services/cartService';
 import { couponService, CouponValidationResponse } from '../services/couponService';
 import { Product, productService } from '../services/productService';
@@ -32,12 +32,30 @@ const DeliveryLocation: React.FC = () => {
 
   const loadUserLocation = async () => {
     try {
+      // First try to get default address from backend
+      const defaultAddress = await addressService.getDefaultAddress();
+      if (defaultAddress) {
+        const { street, city, state, zipCode } = defaultAddress;
+        const parts = [];
+        if (street) parts.push(street);
+        if (city) parts.push(city);
+        if (state) parts.push(state);
+        if (zipCode) parts.push(zipCode);
+        
+        const addressString = parts.join(', ');
+        if (addressString) {
+          setUserLocation(addressString);
+          return;
+        }
+      }
+
+      // Fallback to local storage user data if no backend address
       const userData = await AsyncStorage.getItem('userData');
       if (userData) {
         const user = JSON.parse(userData);
         
-        // Handle address object or string
-        let addressString = 'Elamkulam, Kerala'; // Default
+        // Handle address object or string from user data
+        let addressString = '';
         
         if (user.address) {
           if (typeof user.address === 'string') {
@@ -51,7 +69,7 @@ const DeliveryLocation: React.FC = () => {
             if (state) parts.push(state);
             if (zipCode) parts.push(zipCode);
             if (country) parts.push(country);
-            addressString = parts.join(', ') || 'Elamkulam, Kerala';
+            addressString = parts.join(', ');
           }
         } else if (user.location) {
           if (typeof user.location === 'string') {
@@ -65,27 +83,42 @@ const DeliveryLocation: React.FC = () => {
             if (state) parts.push(state);
             if (zipCode) parts.push(zipCode);
             if (country) parts.push(country);
-            addressString = parts.join(', ') || 'Elamkulam, Kerala';
+            addressString = parts.join(', ');
           }
         }
         
-        setUserLocation(addressString);
+        setUserLocation(addressString || 'Select Location');
       } else {
-        setUserLocation('Elamkulam, Kerala'); // Default location
+        setUserLocation('Select Location');
       }
     } catch (error) {
       console.error('Error loading user location:', error);
-      setUserLocation('Elamkulam, Kerala'); // Default fallback
+      
+      // Try fallback to local storage
+      try {
+        const userData = await AsyncStorage.getItem('userData');
+        if (userData) {
+          const user = JSON.parse(userData);
+          if (user.city) {
+            setUserLocation(user.city);
+            return;
+          }
+        }
+      } catch (fallbackError) {
+        console.error('Fallback location loading also failed:', fallbackError);
+      }
+      
+      setUserLocation('Select Location');
     }
   };
 
   const getLocationText = () => {
     // Ensure we always return a string
-    return typeof userLocation === 'string' ? userLocation : 'Elamkulam, Kerala';
+    return typeof userLocation === 'string' ? userLocation : 'Select Location';
   };
 
   const handleNotificationPress = () => {
-    Alert.alert('Notifications', 'Notification functionality');
+    router.push('/other/notifications');
   };
 
   return (
@@ -297,7 +330,6 @@ const CouponAndSummary: React.FC<{
 
   const handleCheckCoupon = async () => {
     if (!couponCode.trim()) {
-      Alert.alert('Error', 'Please enter a coupon code');
       return;
     }
 
@@ -314,13 +346,10 @@ const CouponAndSummary: React.FC<{
       
       // Refresh the cart data
       onCouponApplied();
-      
-      Alert.alert('Success!', `Coupon applied successfully! You saved ₹${validation.discount}`);
     } catch (error: any) {
       console.error('Error checking coupon:', error);
       setCouponValidation(null);
       setAppliedCouponError(error.message || 'Failed to apply coupon');
-      Alert.alert('Error', error.message || 'Failed to apply coupon');
     } finally {
       setIsValidatingCoupon(false);
     }
@@ -355,11 +384,8 @@ const CouponAndSummary: React.FC<{
       
       // Always refresh the cart to get the updated state
       onCouponApplied();
-      
-      Alert.alert('Success', 'Coupon removed successfully');
     } catch (error: any) {
       console.error('Error removing coupon:', error);
-      Alert.alert('Error', error.message || 'Failed to remove coupon');
     } finally {
       setIsValidatingCoupon(false);
     }
@@ -553,7 +579,6 @@ const CartPage: React.FC = () => {
       setCart(cartData);
     } catch (error) {
       console.error('Error loading cart:', error);
-      Alert.alert('Error', 'Failed to load cart data');
     } finally {
       setLoading(false);
     }
@@ -577,8 +602,6 @@ const CartPage: React.FC = () => {
       setCart(updatedCart);
     } catch (error: any) {
       console.error('Error updating quantity:', error);
-      const errorMessage = error.message || 'Failed to update quantity';
-      Alert.alert('Error', errorMessage);
     } finally {
       setUpdating(false);
     }
@@ -591,8 +614,6 @@ const CartPage: React.FC = () => {
       setCart(updatedCart);
     } catch (error: any) {
       console.error('Error removing item:', error);
-      const errorMessage = error.message || 'Failed to remove item';
-      Alert.alert('Error', errorMessage);
     } finally {
       setUpdating(false);
     }
@@ -621,8 +642,6 @@ const CartPage: React.FC = () => {
       }
     } catch (error: any) {
       console.error('Error clearing unavailable items:', error);
-      const errorMessage = error.message || 'Failed to clear unavailable items';
-      Alert.alert('Error', errorMessage);
     } finally {
       setUpdating(false);
     }
@@ -635,11 +654,8 @@ const CartPage: React.FC = () => {
       setUpdating(true);
       const updatedCart = await cartService.addToCart(productId, 1);
       setCart(updatedCart);
-      Alert.alert('Success', 'Product added to cart');
     } catch (error: any) {
       console.error('Error adding to cart:', error);
-      const errorMessage = error.message || 'Failed to add product to cart';
-      Alert.alert('Error', errorMessage);
     } finally {
       setUpdating(false);
     }
@@ -649,8 +665,6 @@ const CartPage: React.FC = () => {
     if (cart && cart.totalAmount > 0) {
       // Navigate to address selection screen
       router.push('/address-selection');
-    } else {
-      Alert.alert('Error', 'Your cart is empty or has no valid items');
     }
   };
 

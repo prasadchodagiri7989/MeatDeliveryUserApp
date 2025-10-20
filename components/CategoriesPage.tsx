@@ -3,7 +3,6 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Image,
   SafeAreaView,
@@ -51,11 +50,11 @@ const categoriesConfig = [
 // Header Component
 const Header: React.FC = () => {
   const handleBack = () => {
-    Alert.alert('Back', 'Going back to previous screen');
+    // TODO: Implement back navigation
   };
 
   const handleMenu = () => {
-    Alert.alert('Menu', 'Opening menu');
+    // TODO: Implement menu functionality
   };
 
   return (
@@ -253,16 +252,14 @@ const CategoriesPage: React.FC = () => {
   const handleAddToCart = async (product: Product) => {
     try {
       await cartService.addToCart(product._id || product.id, 1);
-      Alert.alert('Success', `${product.name} added to cart`);
     } catch (error) {
       console.error('Error adding to cart:', error);
-      Alert.alert('Error', 'Failed to add item to cart. Please try again.');
     }
   };
 
   // Handle category press
   const handleCategoryPress = (category: CategoryWithProducts) => {
-    Alert.alert('Category Selected', `You selected ${category.name}`);
+    // TODO: Implement category selection logic
   };
 
   // Filter categories and products based on search

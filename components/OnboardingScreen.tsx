@@ -1,7 +1,8 @@
 import { AntDesign } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Animated, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Animated, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { OnboardingService } from '../utils/onboardingService';
 
 // Import the local asset directly
 // Adjust the path based on where your onboarding.tsx file is located.
@@ -31,11 +32,30 @@ const OnboardingScreen: React.FC = () => {
     },
   ];
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentStep < features.length - 1) {
       setCurrentStep(currentStep + 1);
     } else {
-      // Navigate to login page when on the last step
+      // Mark onboarding as completed and navigate to login
+      try {
+        await OnboardingService.setOnboardingCompleted();
+        router.push('/auth/login');
+      } catch (error) {
+        console.error('Error completing onboarding:', error);
+        // Still navigate even if saving fails
+        router.push('/auth/login');
+      }
+    }
+  };
+
+  const handleSkip = async () => {
+    // Mark onboarding as completed and navigate directly to login
+    try {
+      await OnboardingService.setOnboardingCompleted();
+      router.push('/auth/login');
+    } catch (error) {
+      console.error('Error skipping onboarding:', error);
+      // Still navigate even if saving fails
       router.push('/auth/login');
     }
   };
@@ -43,66 +63,76 @@ const OnboardingScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Header Section */}
-<View style={styles.header}>
-  <Image source={deliveryImage} style={styles.topImage} resizeMode="contain" />
-</View>
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollViewContent}
+        showsVerticalScrollIndicator={false}
+        bounces={true}
+      >
+        {/* Header Section */}
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
+            <Text style={styles.skipButtonText}>Skip</Text>
+          </TouchableOpacity>
+          <Image source={deliveryImage} style={styles.topImage} resizeMode="contain" />
+        </View>
 
-  {/* Pagination Dots below image */}
-  <View style={styles.paginationDots}>
-    {features.map((_, index) => (
-      <View
-        key={index}
-        style={[styles.dot, { backgroundColor: index === currentStep ? RED_COLOR : '#ccc' }]}
-      />
-    ))}
-  </View>
+        {/* Pagination Dots below image */}
+        <View style={styles.paginationDots}>
+          {features.map((_, index) => (
+            <View
+              key={index}
+              style={[styles.dot, { backgroundColor: index === currentStep ? RED_COLOR : '#ccc' }]}
+            />
+          ))}
+        </View>
 
-      {/* Content Section */}
-      <View style={styles.content}>
-        <Text style={styles.contentTitle}>Your Fresh Beef Journey</Text>
+        {/* Content Section */}
+        <View style={styles.content}>
+          <Text style={styles.contentTitle}>Your Fresh Beef Journey</Text>
 
-        {features.map((feature, index) => (
-          <View key={feature.id} style={styles.featureContainer}>
-            <Animated.View
-              style={[
-                styles.featureItem,
-                { opacity: index <= currentStep ? 1 : 0.4 },
-              ]}
-            >
-              <View style={styles.iconContainer}>
-                <AntDesign 
-                  name="check-square" 
-                  size={24} 
-                  color={index <= currentStep ? RED_COLOR : '#ccc'} 
-                  style={styles.checkIcon} 
-                />
-                {index < features.length - 1 && (
-                  <View 
-                    style={[
-                      styles.connectingLine,
-                      { backgroundColor: index < currentStep ? RED_COLOR : '#ccc' }
-                    ]} 
+          {features.map((feature, index) => (
+            <View key={feature.id} style={styles.featureContainer}>
+              <Animated.View
+                style={[
+                  styles.featureItem,
+                  { opacity: index <= currentStep ? 1 : 0.4 },
+                ]}
+              >
+                <View style={styles.iconContainer}>
+                  <AntDesign 
+                    name="check-square" 
+                    size={24} 
+                    color={index <= currentStep ? RED_COLOR : '#ccc'} 
+                    style={styles.checkIcon} 
                   />
-                )}
-              </View>
-              <View style={styles.featureTextContainer}>
-                <Text style={styles.featureTitle}>{feature.title}</Text>
-                <Text style={styles.featureDescription}>{feature.description}</Text>
-              </View>
-            </Animated.View>
-          </View>
-        ))}
+                  {index < features.length - 1 && (
+                    <View 
+                      style={[
+                        styles.connectingLine,
+                        { backgroundColor: index < currentStep ? RED_COLOR : '#ccc' }
+                      ]} 
+                    />
+                  )}
+                </View>
+                <View style={styles.featureTextContainer}>
+                  <Text style={styles.featureTitle}>{feature.title}</Text>
+                  <Text style={styles.featureDescription}>{feature.description}</Text>
+                </View>
+              </Animated.View>
+            </View>
+          ))}
 
-        <TouchableOpacity
-          style={styles.nextButton}
-          onPress={handleNext}
-        >
-          <Text style={styles.nextButtonText}>
-            {currentStep === features.length - 1 ? 'Get Started' : 'Next'}
-          </Text>
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity
+            style={styles.nextButton}
+            onPress={handleNext}
+          >
+            <Text style={styles.nextButtonText}>
+              {currentStep === features.length - 1 ? 'Get Started' : 'Next'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
     </View>
   );
 };
@@ -113,12 +143,40 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
   },
 
+  scrollView: {
+    flex: 1,
+  },
+
+  scrollViewContent: {
+    flexGrow: 1,
+  },
+
   header: {
-    flex: 0.4,
     backgroundColor: RED_COLOR,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 40,
+    minHeight: 200,
+    position: 'relative',
+  },
+
+  skipButton: {
+    position: 'absolute',
+    top: 40,
+    right: 20,
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    zIndex: 1,
+  },
+
+  skipButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
   },
 
   // Wrap image and dots
@@ -132,12 +190,13 @@ const styles = StyleSheet.create({
     width: '100%',
   },
 
-paginationDots: {
-  flexDirection: 'row',
-  justifyContent: 'center',
-  alignItems: 'center',
-  marginTop: 15, // space between image and dots
-},
+  paginationDots: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 20,
+    backgroundColor: 'white',
+  },
 
 
   dot: {
@@ -149,10 +208,11 @@ paginationDots: {
   },
 
   content: {
-    flex: 0.5,
     backgroundColor: 'white',
     padding: 20,
     paddingTop: 40,
+    paddingBottom: 60,
+    minHeight: 400,
   },
 
   contentTitle: {
