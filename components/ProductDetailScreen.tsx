@@ -348,6 +348,38 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = () => {
             )}
           </View>
 
+          {/* Delivery Information */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Delivery Information</Text>
+            
+            <View style={styles.deliveryInfoContainer}>
+              <View style={styles.deliveryRow}>
+                <Ionicons name="time-outline" size={20} color={PRIMARY_RED} />
+                <View style={styles.deliveryTextContainer}>
+                  <Text style={styles.deliveryTitle}>
+                    {product.category?.toLowerCase().includes('premium') ? 'Premium Delivery' : 'Standard Delivery'}
+                  </Text>
+                  <Text style={styles.deliveryDescription}>
+                    {product.category?.toLowerCase().includes('premium') 
+                      ? 'Next day delivery by 6:00 AM' 
+                      : 'Delivered within 60-90 minutes'
+                    }
+                  </Text>
+                </View>
+              </View>
+              
+              <View style={styles.deliveryRow}>
+                <Ionicons name="location-outline" size={20} color={PRIMARY_RED} />
+                <View style={styles.deliveryTextContainer}>
+                  <Text style={styles.deliveryTitle}>Service Areas</Text>
+                  <Text style={styles.deliveryDescription}>
+                    Available in select pincodes: 682030, 682304, 682013, 682028
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </View>
+
           {/* Tags */}
           {product.tags && product.tags.length > 0 && (
             <View style={styles.section}>
@@ -804,6 +836,36 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+  },
+
+  deliveryInfoContainer: {
+    backgroundColor: LIGHT_PINK,
+    borderRadius: 8,
+    padding: 16,
+  },
+
+  deliveryRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+
+  deliveryTextContainer: {
+    flex: 1,
+    marginLeft: 12,
+  },
+
+  deliveryTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: DARK_GRAY,
+    marginBottom: 4,
+  },
+
+  deliveryDescription: {
+    fontSize: 13,
+    color: '#666',
+    lineHeight: 18,
   },
 
   bottomSpacing: {

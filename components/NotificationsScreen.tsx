@@ -2,13 +2,13 @@ import { AntDesign, Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  FlatList,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    FlatList,
+    RefreshControl,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NotificationItem, notificationService } from '../services/notificationService';
@@ -142,6 +142,27 @@ const NotificationsScreen: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const testConnection = async () => {
+    try {
+      console.log('Testing notification service connection...');
+      
+      // Test basic connection
+      const result = await notificationService.testConnection();
+      console.log('Connection test result:', result);
+      
+      // Test getting notifications
+      const notifResult = await notificationService.testGetNotifications();
+      console.log('Get notifications test result:', notifResult);
+      
+      // Only log success, don't show toast
+      console.log('Connection test completed successfully');
+    } catch (error: any) {
+      console.error('Connection test failed:', error);
+      // Only show error alerts, not success
+      showError(`Connection test failed: ${error.message}`);
+    }
+  };
+
   const loadNotifications = useCallback(async (page: number = 1, append: boolean = false) => {
     try {
       if (page === 1) {
@@ -150,28 +171,43 @@ const NotificationsScreen: React.FC = () => {
         setLoadingMore(true);
       }
 
+      console.log('Loading notifications, page:', page);
+      
       const response = await notificationService.getNotifications({
         page,
         limit: 20,
       });
 
+      console.log('Notifications response:', response);
+
       if (response.success) {
-        const newNotifications = response.data.notifications;
+        const newNotifications = response.data?.data || [];
         
         if (append && page > 1) {
-          setNotifications(prev => [...prev, ...newNotifications]);
+          setNotifications(prev => [...(prev || []), ...newNotifications]);
         } else {
           setNotifications(newNotifications);
         }
         
-        setHasMoreData(response.data.hasNextPage);
+        // Calculate hasMoreData based on pagination
+        const pagination = response.data?.pagination;
+        setHasMoreData(pagination ? pagination.current < pagination.pages : false);
         setCurrentPage(page);
       } else {
+        console.error('Failed to load notifications:', response);
         showError('Failed to load notifications');
+        // Ensure we still have a valid array
+        if (!append) {
+          setNotifications([]);
+        }
       }
     } catch (error: any) {
       console.error('Error loading notifications:', error);
       showError(error.message || 'Failed to load notifications');
+      // Ensure we still have a valid array on error
+      if (!append) {
+        setNotifications([]);
+      }
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -200,7 +236,7 @@ const NotificationsScreen: React.FC = () => {
         
         // Update local state
         setNotifications(prev => 
-          prev.map(n => 
+          (prev || []).map(n => 
             n._id === notification._id 
               ? { ...n, isRead: true }
               : n
@@ -234,7 +270,7 @@ const NotificationsScreen: React.FC = () => {
       if (response.success) {
         // Update all notifications to read
         setNotifications(prev => 
-          prev.map(n => ({ ...n, isRead: true }))
+          (prev || []).map(n => ({ ...n, isRead: true }))
         );
         showSuccess('All notifications marked as read');
       } else {
@@ -274,6 +310,14 @@ const NotificationsScreen: React.FC = () => {
         <Text style={styles.emptyStateMessage}>
           When you receive notifications, they will appear here
         </Text>
+        {__DEV__ && (
+          <TouchableOpacity 
+            style={styles.debugButton} 
+            onPress={testConnection}
+          >
+            <Text style={styles.debugButtonText}>Test Connection</Text>
+          </TouchableOpacity>
+        )}
       </View>
     );
   };
@@ -299,7 +343,7 @@ const NotificationsScreen: React.FC = () => {
       
       {/* Notifications List */}
       <FlatList
-        data={notifications}
+        data={notifications || []}
         renderItem={renderNotificationItem}
         keyExtractor={(item) => item._id}
         ItemSeparatorComponent={renderSeparator}
@@ -308,7 +352,7 @@ const NotificationsScreen: React.FC = () => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
           styles.listContainer,
-          notifications.length === 0 && styles.emptyListContainer
+          (!notifications || notifications.length === 0) && styles.emptyListContainer
         ]}
         style={styles.flatList}
         refreshControl={
@@ -501,6 +545,21 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
     lineHeight: 22,
+  },
+
+  // Debug Button Styles (Development only)
+  debugButton: {
+    backgroundColor: RED_COLOR,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    marginTop: 20,
+  },
+
+  debugButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 });
 

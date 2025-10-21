@@ -5,7 +5,6 @@ import {
     ActivityIndicator,
     FlatList,
     Image,
-    ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -24,12 +23,9 @@ const LIGHT_PINK = '#FFF1F1';
 
 const MyOrdersScreen: React.FC = () => {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<string>('All');
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-
-  const tabs = ['All', 'Instant Orders', 'Premium Cuts'];
 
   // Load orders from API
   useEffect(() => {
@@ -128,24 +124,8 @@ const MyOrdersScreen: React.FC = () => {
 
   // Filter orders based on active tab
   const getFilteredOrders = (): Order[] => {
-    switch (activeTab) {
-      case 'Instant Orders':
-        return orders.filter(order => 
-          order.items.some(item => 
-            item.product.tags.includes('instant') || 
-            item.product.preparationMethod === 'instant'
-          )
-        );
-      case 'Premium Cuts':
-        return orders.filter(order => 
-          order.items.some(item => 
-            item.product.name.toLowerCase().includes('premium') || 
-            item.product.subcategory.toLowerCase().includes('premium')
-          )
-        );
-      default:
-        return orders;
-    }
+    // Since we only have 'All' tab, return all orders
+    return orders;
   };
 
   // Render order card
@@ -196,35 +176,6 @@ const MyOrdersScreen: React.FC = () => {
         <View style={styles.backButton} />
       </View>
 
-      {/* Filter Tabs */}
-      <View style={styles.filterContainer}>
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.tabsContainer}
-        >
-          {tabs.map((tab) => (
-            <TouchableOpacity
-              key={tab}
-              style={[
-                styles.tab,
-                activeTab === tab ? styles.activeTab : styles.inactiveTab
-              ]}
-              onPress={() => setActiveTab(tab)}
-            >
-              <Text
-                style={[
-                  styles.tabText,
-                  activeTab === tab ? styles.activeTabText : styles.inactiveTabText
-                ]}
-              >
-                {tab}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
-
       {/* Orders List */}
       {loading ? (
         <View style={styles.loadingContainer}>
@@ -248,7 +199,7 @@ const MyOrdersScreen: React.FC = () => {
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No orders found for &quot;{activeTab}&quot;</Text>
+              <Text style={styles.emptyText}>No orders found</Text>
             </View>
           }
         />
@@ -290,49 +241,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: 'black',
     textAlign: 'center',
-  },
-
-  // Filter Tabs Styles
-  filterContainer: {
-    backgroundColor: 'white',
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-
-  tabsContainer: {
-    paddingHorizontal: 16,
-  },
-
-  tab: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-    marginRight: 12,
-    borderWidth: 1,
-  },
-
-  activeTab: {
-    backgroundColor: PRIMARY_RED,
-    borderColor: PRIMARY_RED,
-  },
-
-  inactiveTab: {
-    backgroundColor: 'white',
-    borderColor: '#DDD',
-  },
-
-  tabText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-
-  activeTabText: {
-    color: 'white',
-  },
-
-  inactiveTabText: {
-    color: 'black',
   },
 
   // Orders List Styles

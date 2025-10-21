@@ -26,7 +26,9 @@
         "INTERNET",
         "ACCESS_NETWORK_STATE",
         "VIBRATE",
-        "RECEIVE_BOOT_COMPLETED"
+        "RECEIVE_BOOT_COMPLETED",
+        "WAKE_LOCK",
+        "com.google.android.c2dm.permission.RECEIVE"
       ],
       "blockedPermissions": [
         "ACCESS_FINE_LOCATION",
@@ -41,6 +43,15 @@
     },
     "plugins": [
       "expo-router",
+      "expo-dev-client",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#D13635",
+          "defaultChannel": "default"
+        }
+      ],
       [
         "expo-splash-screen",
         {
@@ -63,7 +74,7 @@
         "projectId": "2ba16e37-acef-4bf5-a74b-ab54e880e43e"
       },
       "apiPort": "5000",
-      "apiHost": "192.168.1.6",
+      "apiHost": "192.168.1.9",
       "productionApiUrl": "https://meat-delivery-backend-bowm.vercel.app/api",
       "productionApiHost": "meat-delivery-backend-bowm.vercel.app"
     }

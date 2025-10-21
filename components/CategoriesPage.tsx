@@ -2,15 +2,15 @@ import { AntDesign, Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  FlatList,
-  Image,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    FlatList,
+    Image,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useCart } from '../contexts/CartContext';
@@ -29,6 +29,7 @@ interface CategoryWithProducts {
   image: any;
   itemCount: string;
   products: Product[];
+  apiCategory: string;
 }
 
 // Categories configuration
@@ -53,10 +54,6 @@ const categoriesConfig = [
 const Header: React.FC = () => {
   const handleBack = () => {
     // TODO: Implement back navigation
-  };
-
-  const handleMenu = () => {
-    // TODO: Implement menu functionality
   };
 
   return (
@@ -139,7 +136,8 @@ const CategorySection: React.FC<{
   category: CategoryWithProducts; 
   onProductPress: (product: Product) => void;
   onAddToCart: (product: Product) => void;
-}> = ({ category, onProductPress, onAddToCart }) => {
+  onSeeAll: () => void;
+}> = ({ category, onProductPress, onAddToCart, onSeeAll }) => {
   const renderProduct = ({ item }: { item: Product }) => (
     <ProductCard item={item} onPress={onProductPress} onAddToCart={onAddToCart} />
   );
@@ -148,7 +146,7 @@ const CategorySection: React.FC<{
     <View style={styles.categorySection}>
       <View style={styles.categorySectionHeader}>
         <Text style={styles.categorySectionTitle}>{category.name}</Text>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={onSeeAll}>
           <Text style={styles.seeAllText}>See All</Text>
         </TouchableOpacity>
       </View>
@@ -220,7 +218,8 @@ const CategoriesPage: React.FC = () => {
               description: config.description,
               image: config.image,
               itemCount: `${products.length} items`,
-              products: products
+              products: products,
+              apiCategory: config.apiCategory
             });
           } catch (error) {
             console.error(`Error fetching products for ${config.name}:`, error);
@@ -231,7 +230,8 @@ const CategoriesPage: React.FC = () => {
               description: config.description,
               image: config.image,
               itemCount: '0 items',
-              products: []
+              products: [],
+              apiCategory: config.apiCategory
             });
           }
         }
@@ -268,7 +268,14 @@ const CategoriesPage: React.FC = () => {
 
   // Handle category press
   const handleCategoryPress = (category: CategoryWithProducts) => {
-    // TODO: Implement category selection logic
+    // Navigate to search results with category filter using API category
+    router.push(`/search-results?category=${encodeURIComponent(category.apiCategory)}&q=${encodeURIComponent(category.name)}` as any);
+  };
+
+  // Handle see all for a category
+  const handleSeeAll = (category: CategoryWithProducts) => {
+    // Navigate to search results with category filter using API category
+    router.push(`/search-results?category=${encodeURIComponent(category.apiCategory)}&q=${encodeURIComponent(category.name)}` as any);
   };
 
   // Filter categories and products based on search
@@ -277,7 +284,11 @@ const CategoriesPage: React.FC = () => {
         category.name.toLowerCase().includes(searchText.toLowerCase()) ||
         category.description.toLowerCase().includes(searchText.toLowerCase()) ||
         category.products.some(product => 
-          product.name.toLowerCase().includes(searchText.toLowerCase())
+          product.name.toLowerCase().includes(searchText.toLowerCase()) ||
+          product.description.toLowerCase().includes(searchText.toLowerCase()) ||
+          product.category.toLowerCase().includes(searchText.toLowerCase()) ||
+          (product.subcategory && product.subcategory.toLowerCase().includes(searchText.toLowerCase())) ||
+          (product.tags && product.tags.some(tag => tag.toLowerCase().includes(searchText.toLowerCase())))
         )
       )
     : categories;
@@ -327,6 +338,7 @@ const CategoriesPage: React.FC = () => {
                 category={category} 
                 onProductPress={handleProductPress}
                 onAddToCart={handleAddToCart}
+                onSeeAll={() => handleSeeAll(category)}
               />
             ))}
           </View>
@@ -364,26 +376,9 @@ const CategoriesPage: React.FC = () => {
                 category={category} 
                 onProductPress={handleProductPress}
                 onAddToCart={handleAddToCart}
+                onSeeAll={() => handleSeeAll(category)}
               />
             ))}
-            
-            {/* Popular Categories Section */}
-            {categories.length > 0 && (
-              <View style={styles.popularSection}>
-                <Text style={styles.sectionTitle}>Popular This Week</Text>
-                
-                <FlatList
-                  data={categories}
-                  renderItem={renderCategoryItem}
-                  keyExtractor={(item) => item.id}
-                  numColumns={2}
-                  scrollEnabled={false}
-                  showsVerticalScrollIndicator={false}
-                  contentContainerStyle={styles.categoriesContainer}
-                  columnWrapperStyle={styles.categoryRow}
-                />
-              </View>
-            )}
           </>
         )}
       </ScrollView>

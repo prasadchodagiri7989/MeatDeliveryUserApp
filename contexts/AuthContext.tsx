@@ -84,12 +84,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           await AsyncStorage.removeItem('userData');
         }
       } else {
-        // No token, clear any cached user data
+        // No valid session, clear any cached user data
         await AsyncStorage.removeItem('userData');
       }
     } catch (error) {
       console.error('Auth check error:', error);
       // On any error, clear authentication state
+      await authService.logout();
       await AsyncStorage.removeItem('userData');
     } finally {
       setIsLoading(false);

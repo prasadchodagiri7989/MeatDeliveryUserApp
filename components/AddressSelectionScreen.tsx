@@ -2,13 +2,13 @@ import { AntDesign, Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Address, addressService } from '../services/addressService';
@@ -132,6 +132,17 @@ const AddressSelectionScreen: React.FC = () => {
     } catch (error) {
       console.error('Error deleting address:', error);
       toast.showError('Failed to delete address. Please try again.');
+    }
+  };
+
+  const handleMakeDefault = async (addressId: string) => {
+    try {
+      const updatedAddresses = await addressService.setDefaultAddress(addressId);
+      setAddresses(updatedAddresses);
+      toast.showSuccess('Default address updated successfully');
+    } catch (error) {
+      console.error('Error setting default address:', error);
+      toast.showError('Failed to set default address. Please try again.');
     }
   };
 
@@ -273,6 +284,16 @@ const AddressSelectionScreen: React.FC = () => {
                 <Text style={styles.addressText}>
                   {address.city}, {address.state} {address.zipCode}
                 </Text>
+                
+                {/* Make Default Button - show only for non-default addresses */}
+                {!address.isDefault && (
+                  <TouchableOpacity 
+                    style={styles.makeDefaultButton}
+                    onPress={() => handleMakeDefault(address._id)}
+                  >
+                    <Text style={styles.makeDefaultText}>Make this default</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             </TouchableOpacity>
           ))}
@@ -616,6 +637,22 @@ const styles = StyleSheet.create({
     color: '#888',
     marginTop: 8,
     fontStyle: 'italic',
+  },
+
+  // Make Default Button Styles
+  makeDefaultButton: {
+    backgroundColor: RED_COLOR,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+    marginTop: 8,
+    alignSelf: 'flex-start',
+  },
+
+  makeDefaultText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '600',
   },
 });
 

@@ -1,12 +1,12 @@
-// app/auth/login.tsx
-import LoginScreen from '@/components/LoginScreen';
+// app/auth/set-pin.tsx
+import SetPinScreen from '@/components/SetPinScreen';
 import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-export default function LoginPage() {
+export default function SetPinPage() {
   return (
     <SafeAreaView style={styles.container}>
-      <LoginScreen />
+      <SetPinScreen />
     </SafeAreaView>
   );
 }

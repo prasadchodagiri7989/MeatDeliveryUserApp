@@ -43,11 +43,41 @@ export interface AddressResponse {
 
 class AddressService {
   private async getAuthHeaders() {
-    const token = await AsyncStorage.getItem('authToken');
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    };
+    try {
+      let token: string | null = null;
+      
+      // Try to get session token first (for persistent auth)
+      const sessionData = await AsyncStorage.getItem('authSession');
+      if (sessionData) {
+        const session = JSON.parse(sessionData);
+        const now = Date.now();
+        
+        // Check if session is still valid
+        if (now <= session.expiresAt) {
+          token = session.token;
+        }
+      }
+      
+      // Fallback to legacy token storage
+      if (!token) {
+        token = await AsyncStorage.getItem('authToken');
+      }
+      
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json'
+      };
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      return headers;
+    } catch (error) {
+      console.error('Error getting auth headers:', error);
+      return {
+        'Content-Type': 'application/json'
+      };
+    }
   }
 
   // Get all saved addresses

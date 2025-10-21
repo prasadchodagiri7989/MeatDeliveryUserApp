@@ -3,31 +3,83 @@ import { getCurrentConfig } from '../config/api';
 
 const API_BASE_URL = getCurrentConfig().API_URL;
 
-// Helper function to get auth token
+// Session constants
+const SESSION_DURATION = 20 * 24 * 60 * 60 * 1000; // 20 days in milliseconds
+
+// Interface for session data
+interface SessionData {
+  token: string;
+  expiresAt: number;
+  userId: string;
+}
+
+// Helper function to get auth token with expiration check
 const getAuthToken = async (): Promise<string | null> => {
   try {
-    return await AsyncStorage.getItem('authToken');
+    const sessionData = await AsyncStorage.getItem('authSession');
+    if (!sessionData) {
+      return null;
+    }
+
+    const session: SessionData = JSON.parse(sessionData);
+    const now = Date.now();
+
+    // Check if session has expired
+    if (now > session.expiresAt) {
+      console.log('Session expired, clearing auth data');
+      await removeAuthSession();
+      return null;
+    }
+
+    return session.token;
   } catch (error) {
     console.error('Error getting auth token:', error);
     return null;
   }
 };
 
-// Helper function to set auth token
-const setAuthToken = async (token: string): Promise<void> => {
+// Helper function to set auth token with expiration
+const setAuthToken = async (token: string, userId: string): Promise<void> => {
   try {
-    await AsyncStorage.setItem('authToken', token);
+    const expiresAt = Date.now() + SESSION_DURATION;
+    const sessionData: SessionData = {
+      token,
+      expiresAt,
+      userId
+    };
+    
+    await AsyncStorage.setItem('authSession', JSON.stringify(sessionData));
+    console.log(`Session set for user ${userId}, expires at ${new Date(expiresAt).toISOString()}`);
   } catch (error) {
     console.error('Error setting auth token:', error);
   }
 };
 
-// Helper function to remove auth token
-const removeAuthToken = async (): Promise<void> => {
+// Helper function to remove auth session
+const removeAuthSession = async (): Promise<void> => {
   try {
-    await AsyncStorage.removeItem('authToken');
+    await AsyncStorage.removeItem('authSession');
+    await AsyncStorage.removeItem('authToken'); // Remove legacy token if exists
   } catch (error) {
-    console.error('Error removing auth token:', error);
+    console.error('Error removing auth session:', error);
+  }
+};
+
+// Helper function to check if session is valid
+export const isSessionValid = async (): Promise<boolean> => {
+  try {
+    const sessionData = await AsyncStorage.getItem('authSession');
+    if (!sessionData) {
+      return false;
+    }
+
+    const session: SessionData = JSON.parse(sessionData);
+    const now = Date.now();
+
+    return now <= session.expiresAt;
+  } catch (error) {
+    console.error('Error checking session validity:', error);
+    return false;
   }
 };
 
@@ -64,19 +116,43 @@ const apiCall = async (endpoint: string, options: RequestInit = {}): Promise<any
 export interface LoginData {
   email: string;
   password: string;
+  phone?: string; // Optional phone field for phone-based login
+}
+
+export interface LoginPinData {
+  identifier: string; // email or phone
+  pin: string;
+}
+
+export interface SetPinData {
+  pin: string;
+  confirmPin: string;
+}
+
+export interface ForgotPinData {
+  identifier: string; // email or phone
+}
+
+export interface ResetPinData {
+  identifier: string;
+  otp: string;
+  newPin: string;
+  confirmPin: string;
 }
 
 export interface RegisterData {
   firstName: string;
   lastName: string;
   email: string;
-  password: string;
+  pin: string;
   phone: string;
   address?: {
     street: string;
     city: string;
     state: string;
     zipCode: string;
+    country?: string;
+    landmark?: string;
   };
   role?: string;
 }
@@ -157,8 +233,8 @@ export const authService = {
       body: JSON.stringify(loginData),
     });
     
-    if (response.success && response.token) {
-      await setAuthToken(response.token);
+    if (response.success && response.token && response.user) {
+      await setAuthToken(response.token, response.user._id);
     }
     
     return response;
@@ -171,8 +247,8 @@ export const authService = {
       body: JSON.stringify(registerData),
     });
     
-    if (response.success && response.token) {
-      await setAuthToken(response.token);
+    if (response.success && response.token && response.user) {
+      await setAuthToken(response.token, response.user._id);
     }
     
     return response;
@@ -196,9 +272,10 @@ export const authService = {
     
     // Handle both response structures - nested data or direct properties
     const token = response.data?.token || (response as any).token;
+    const user = response.data?.user || (response as any).user;
     
-    if (response.success && token) {
-      await setAuthToken(token);
+    if (response.success && token && user) {
+      await setAuthToken(token, user._id);
     }
     
     return response;
@@ -228,6 +305,47 @@ export const authService = {
     return response;
   },
 
+  // Login with PIN
+  loginWithPin: async (loginPinData: LoginPinData): Promise<AuthResponse> => {
+    const response = await apiCall('/auth/login-pin', {
+      method: 'POST',
+      body: JSON.stringify(loginPinData),
+    });
+    
+    if (response.success && response.token && response.user) {
+      await setAuthToken(response.token, response.user._id);
+    }
+    
+    return response;
+  },
+
+  // Set PIN
+  setPin: async (pinData: SetPinData): Promise<{ success: boolean; message: string }> => {
+    const response = await apiCall('/auth/set-pin', {
+      method: 'POST',
+      body: JSON.stringify(pinData),
+    });
+    return response;
+  },
+
+  // Forgot PIN - Request OTP
+  forgotPin: async (forgotPinData: ForgotPinData): Promise<{ success: boolean; message: string; data?: any }> => {
+    const response = await apiCall('/auth/forgot-pin', {
+      method: 'POST',
+      body: JSON.stringify(forgotPinData),
+    });
+    return response;
+  },
+
+  // Reset PIN with OTP
+  resetPin: async (resetPinData: ResetPinData): Promise<{ success: boolean; message: string }> => {
+    const response = await apiCall('/auth/reset-pin', {
+      method: 'POST',
+      body: JSON.stringify(resetPinData),
+    });
+    return response;
+  },
+
   // Logout
   logout: async (): Promise<void> => {
     try {
@@ -238,18 +356,20 @@ export const authService = {
       // Continue logout even if API call fails
       console.error('Logout API error:', error);
     }
-    await removeAuthToken();
+    await removeAuthSession();
   },
 
   // Check if user is authenticated
   isAuthenticated: async (): Promise<boolean> => {
-    const token = await getAuthToken();
-    return !!token;
+    return await isSessionValid();
   },
 
   // Get current user token
   getToken: getAuthToken,
 
   // Set auth token (for manual token setting if needed)
-  setToken: setAuthToken,
+  setToken: (token: string, userId: string) => setAuthToken(token, userId),
+
+  // Check session validity
+  isSessionValid: isSessionValid,
 };

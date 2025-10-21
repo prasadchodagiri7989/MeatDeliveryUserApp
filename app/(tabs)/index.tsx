@@ -1,21 +1,22 @@
 import BannerCarousel from "@/components/BannerCarousel";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import BannerSection from "../../components/BannerSection";
 import ProductCard from "../../components/ProductCard";
+import SessionMonitor from "../../components/SessionMonitor";
 import { useAuth } from "../../contexts/AuthContext";
 import { Address, addressService } from "../../services/addressService";
 import { Product, productService } from "../../services/productService";
@@ -31,6 +32,7 @@ export default function HomeScreen() {
   const [instantProducts, setInstantProducts] = useState<Product[]>([]);
   const [loadingInstant, setLoadingInstant] = useState(true);
   const [currentAddress, setCurrentAddress] = useState<Address | null>(null);
+  const [loadingAddress, setLoadingAddress] = useState(false);
 
   // Fetch premium products on component mount
   useEffect(() => {
@@ -73,23 +75,37 @@ export default function HomeScreen() {
     fetchInstantProducts();
   }, []);
 
-  // Fetch user's default address
-  useEffect(() => {
-    const fetchDefaultAddress = async () => {
-      try {
-        const defaultAddress = await addressService.getDefaultAddress();
-        setCurrentAddress(defaultAddress);
-      } catch (error) {
-        console.error("Error fetching default address:", error);
-        setCurrentAddress(null);
-      }
-    };
+  // Function to fetch user's default address
+  const fetchDefaultAddress = useCallback(async () => {
+    if (!user) {
+      setCurrentAddress(null);
+      return;
+    }
 
-    // Only fetch address if user is authenticated
-    if (user) {
-      fetchDefaultAddress();
+    try {
+      setLoadingAddress(true);
+      const defaultAddress = await addressService.getDefaultAddress();
+      setCurrentAddress(defaultAddress);
+    } catch (error) {
+      console.error("Error fetching default address:", error);
+      setCurrentAddress(null);
+    } finally {
+      setLoadingAddress(false);
     }
   }, [user]);
+
+  // Fetch user's default address on initial load
+  useEffect(() => {
+    fetchDefaultAddress();
+  }, [fetchDefaultAddress]);
+
+  // Refresh default address when screen comes into focus
+  // This ensures the address updates when user changes default address
+  useFocusEffect(
+    useCallback(() => {
+      fetchDefaultAddress();
+    }, [fetchDefaultAddress])
+  );
 
   const handleNotificationPress = () => {
     router.push('/other/notifications');
@@ -117,19 +133,38 @@ export default function HomeScreen() {
     router.push(`/product-detail?id=${product._id || product.id}` as any);
   };
 
+  // Helper function to get address label with fallback
+  const getAddressLabel = () => {
+    if (currentAddress?.label) {
+      return `${currentAddress.label} • `;
+    }
+    return '';
+  };
+
   // Helper function to format user location
   const getLocationText = () => {
-    // If we have a fetched address from backend, use it
+    // Show loading if address is being fetched
+    if (loadingAddress) {
+      return "Loading...";
+    }
+
+    // If we have a fetched default address from backend, use it
     if (currentAddress) {
-      const { city, state, zipCode, street } = currentAddress;
+      const { city, state, zipCode, street, label } = currentAddress;
+      
+      // Show a more complete address format for default address
       if (city && state) {
-        return `${city}, ${state}`;
+        return `${getAddressLabel()}${city}, ${state} ${zipCode || ''}`.trim();
       } else if (city && zipCode) {
-        return `${city}, ${zipCode}`;
+        return `${getAddressLabel()}${city}, ${zipCode}`;
       } else if (city) {
-        return city;
+        return `${getAddressLabel()}${city}`;
       } else if (street) {
-        return street;
+        // If only street is available, show a truncated version
+        const truncatedStreet = street.length > 25 ? `${street.substring(0, 25)}...` : street;
+        return `${getAddressLabel()}${truncatedStreet}`;
+      } else if (label) {
+        return label;
       }
     }
 
@@ -144,7 +179,7 @@ export default function HomeScreen() {
     
     if (user?.address) {
       if (typeof user.address === 'string') {
-        return user.address;
+        return user.address.length > 30 ? `${user.address.substring(0, 30)}...` : user.address;
       }
       
       // Handle address object
@@ -161,12 +196,13 @@ export default function HomeScreen() {
       }
     }
     
-    // Default fallback - you may want to change this to your actual service area
-    return "Select Location";
+    // Default fallback - encourage user to add address
+    return "Add your address";
   };
 
   return (
     <SafeAreaView style={styles.safeContainer}>
+      <SessionMonitor />
       <ScrollView style={styles.container}>
         {/* Location + Notifications */}
         <View style={styles.header}>
@@ -175,8 +211,15 @@ export default function HomeScreen() {
             onPress={handleAddressPress}
           >
             <Ionicons name="location-sharp" size={20} color="#fff" />
-            <View>
-              <Text style={styles.locationText}>Current location</Text>
+            <View style={{ marginLeft: 8 }}>
+              <Text style={styles.locationText}>
+                {loadingAddress 
+                  ? "Loading..." 
+                  : currentAddress 
+                    ? "Delivering to" 
+                    : "Select delivery location"
+                }
+              </Text>
               <Text style={styles.cityText}>
                 {getLocationText()}
               </Text>

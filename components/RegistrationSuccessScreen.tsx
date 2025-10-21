@@ -1,12 +1,13 @@
 import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-    Image,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
+import { useAuth } from '../contexts/AuthContext';
 
 // Import the logo - adjust path as needed
 const sejaLogo = require('../assets/images/sejas-logo.png');
@@ -15,10 +16,35 @@ const RED_COLOR = '#D13635';
 
 const RegistrationSuccessScreen: React.FC = () => {
   const router = useRouter();
+  const { isAuthenticated } = useAuth();
+  const [countdown, setCountdown] = useState(5);
+  
+  useEffect(() => {
+    // Auto redirect after 5 seconds if user is authenticated
+    if (isAuthenticated) {
+      const timer = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            router.replace('/(tabs)');
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => clearInterval(timer);
+    }
+  }, [isAuthenticated, router]);
   
   const handleExploreNow = () => {
     // Navigate to the main app homepage (tabs)
-    router.push('/(tabs)');
+    if (isAuthenticated) {
+      router.replace('/(tabs)');
+    } else {
+      // If not authenticated, go back to login
+      router.replace('/auth/login');
+    }
   };
 
   return (
@@ -38,12 +64,19 @@ const RegistrationSuccessScreen: React.FC = () => {
         <Text style={styles.subtextMessage}>
           Success! You&apos;re all set. Welcome aboard! 🎉
         </Text>
+        {isAuthenticated && countdown > 0 && (
+          <Text style={styles.countdownText}>
+            Redirecting in {countdown} seconds...
+          </Text>
+        )}
       </View>
 
       {/* Action Button */}
       <View style={styles.buttonSection}>
         <TouchableOpacity style={styles.exploreButton} onPress={handleExploreNow}>
-          <Text style={styles.exploreButtonText}>Explore Now !</Text>
+          <Text style={styles.exploreButtonText}>
+            {countdown > 0 ? `Explore Now! (${countdown})` : 'Explore Now!'}
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -94,6 +127,14 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
     lineHeight: 26,
+  },
+
+  countdownText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: RED_COLOR,
+    textAlign: 'center',
+    marginTop: 10,
   },
 
   buttonSection: {

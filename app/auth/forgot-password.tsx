@@ -1,12 +1,12 @@
-// app/auth/login.tsx
-import LoginScreen from '@/components/LoginScreen';
+// app/auth/forgot-password.tsx
+import ForgotPasswordScreen from '@/components/ForgotPasswordScreen';
 import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-export default function LoginPage() {
+export default function ForgotPasswordPage() {
   return (
     <SafeAreaView style={styles.container}>
-      <LoginScreen />
+      <ForgotPasswordScreen />
     </SafeAreaView>
   );
 }

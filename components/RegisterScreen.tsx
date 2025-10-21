@@ -1,27 +1,30 @@
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
+import { useAuth } from '../contexts/AuthContext';
 import { authService } from '../services/authService';
+import { validateAddressPincode } from '../utils/deliveryService';
 
 const RED_COLOR = '#D13635';
 
 const RegisterScreen: React.FC = () => {
+  const { login } = useAuth();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [pin, setPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
   
   // Address fields
   const [street, setStreet] = useState('');
@@ -31,17 +34,23 @@ const RegisterScreen: React.FC = () => {
   
   const [loading, setLoading] = useState(false);
 
+  // Check if pincode is serviceable
+  const pincodeValidation = validateAddressPincode(zipCode);
+
   const isFormValid = 
-    firstName.length > 0 && 
-    lastName.length > 0 &&
+    firstName.length >= 2 && firstName.length <= 50 && 
+    lastName.length >= 2 && lastName.length <= 50 &&
     phone.length === 10 && 
     email.length > 0 &&
-    password.length >= 6 &&
-    password === confirmPassword &&
-    street.length > 0 &&
-    city.length > 0 &&
-    state.length > 0 &&
-    zipCode.length > 0;
+    pin.length === 6 &&
+    pin === confirmPin &&
+    /^\d+$/.test(pin) && // PIN should contain only numbers
+    street.length >= 5 &&
+    city.length >= 2 &&
+    state.length >= 2 &&
+    zipCode.length === 6 && // Backend expects 6-digit PIN code
+    /^\d+$/.test(zipCode) && // ZIP code should be numeric
+    pincodeValidation.isValid; // Pincode must be serviceable
 
   const handlePhoneChange = (text: string) => {
     const numericText = text.replace(/[^0-9]/g, '');
@@ -50,9 +59,42 @@ const RegisterScreen: React.FC = () => {
     }
   };
 
+  const handleZipCodeChange = (text: string) => {
+    const numericText = text.replace(/[^0-9]/g, '');
+    if (numericText.length <= 6) {
+      setZipCode(numericText);
+    }
+  };
+
+  const handlePinChange = (text: string) => {
+    const numericText = text.replace(/[^0-9]/g, '');
+    if (numericText.length <= 6) {
+      setPin(numericText);
+    }
+  };
+
+  const handleConfirmPinChange = (text: string) => {
+    const numericText = text.replace(/[^0-9]/g, '');
+    if (numericText.length <= 6) {
+      setConfirmPin(numericText);
+    }
+  };
+
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
+  };
+
+  const validatePhone = (phone: string) => {
+    // Indian phone number validation (10 digits, starting with 6-9)
+    const phoneRegex = /^[6-9]\d{9}$/;
+    return phoneRegex.test(phone);
+  };
+
+  const validateName = (name: string) => {
+    // Name should contain only letters and spaces, and be trimmed
+    const nameRegex = /^[a-zA-Z\s]+$/;
+    return nameRegex.test(name.trim()) && name.trim().length >= 2;
   };
 
   const handleRegister = async () => {
@@ -66,13 +108,69 @@ const RegisterScreen: React.FC = () => {
       return;
     }
 
-    if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters long');
+    if (!validateName(firstName)) {
+      Alert.alert('Error', 'First name must contain only letters and be at least 2 characters');
       return;
     }
 
-    if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
+    if (!validateName(lastName)) {
+      Alert.alert('Error', 'Last name must contain only letters and be at least 2 characters');
+      return;
+    }
+
+    if (firstName.length < 2 || firstName.length > 50) {
+      Alert.alert('Error', 'First name must be between 2 and 50 characters');
+      return;
+    }
+
+    if (lastName.length < 2 || lastName.length > 50) {
+      Alert.alert('Error', 'Last name must be between 2 and 50 characters');
+      return;
+    }
+
+    if (!validatePhone(phone)) {
+      Alert.alert('Error', 'Phone number must be 10 digits and start with 6, 7, 8, or 9');
+      return;
+    }
+
+    if (pin.length !== 6) {
+      Alert.alert('Error', 'PIN must be exactly 6 digits');
+      return;
+    }
+
+    if (!/^\d+$/.test(pin)) {
+      Alert.alert('Error', 'PIN can only contain numbers');
+      return;
+    }
+
+    if (pin !== confirmPin) {
+      Alert.alert('Error', 'PINs do not match');
+      return;
+    }
+
+    if (street.length < 5) {
+      Alert.alert('Error', 'Street address must be at least 5 characters');
+      return;
+    }
+
+    if (city.length < 2) {
+      Alert.alert('Error', 'City must be at least 2 characters');
+      return;
+    }
+
+    if (state.length < 2) {
+      Alert.alert('Error', 'State must be at least 2 characters');
+      return;
+    }
+
+    if (zipCode.length !== 6 || !/^\d+$/.test(zipCode)) {
+      Alert.alert('Error', 'ZIP code must be exactly 6 digits');
+      return;
+    }
+
+    // Check pincode serviceability
+    if (!pincodeValidation.isValid) {
+      Alert.alert('Service Area', pincodeValidation.message);
       return;
     }
 
@@ -83,39 +181,62 @@ const RegisterScreen: React.FC = () => {
         firstName,
         lastName,
         email,
-        password,
+        pin, // Backend expects 'pin' field
         phone: `+91${phone}`,
         address: {
           street,
           city,
           state,
-          zipCode
+          zipCode,
+          country: 'India' // Default country as per backend
         }
       };
 
       const response = await authService.register(registerData);
       
       if (response.success) {
+        // Auto login the user after successful registration
+        if (response.token && response.user) {
+          await login(response.user, response.token);
+        }
+        
         Alert.alert(
           'Registration Successful',
-          'Your account has been created successfully! Please login to continue.',
+          'Your account has been created successfully! You are now logged in.',
           [
             {
               text: 'OK',
               onPress: () => {
-                // Navigate to login page
-                router.push('/auth/login');
+                // Navigate to main app since user is now authenticated
+                router.replace('/(tabs)');
               }
             }
           ]
         );
+      } else {
+        Alert.alert(
+          'Registration Failed', 
+          response.message || 'Failed to create account. Please try again.'
+        );
       }
     } catch (error: any) {
       console.error('Registration error:', error);
-      Alert.alert(
-        'Registration Failed', 
-        error.message || 'Failed to create account. Please try again.'
-      );
+      let errorMessage = 'Failed to create account. Please try again.';
+      
+      // Handle specific error messages from backend
+      if (error.message) {
+        if (error.message.includes('email')) {
+          errorMessage = 'This email is already registered. Please use a different email or try logging in.';
+        } else if (error.message.includes('phone')) {
+          errorMessage = 'This phone number is already registered. Please use a different number or try logging in.';
+        } else if (error.message.includes('PIN')) {
+          errorMessage = 'Invalid PIN format. Please ensure PIN is exactly 6 digits.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      Alert.alert('Registration Failed', errorMessage);
     } finally {
       setLoading(false);
     }
@@ -188,32 +309,49 @@ const RegisterScreen: React.FC = () => {
         />
       </View>
 
-      {/* Password */}
+      {/* PIN */}
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Password</Text>
+        <Text style={styles.label}>PIN (6 digits)</Text>
         <TextInput
           style={styles.input}
-          placeholder="Enter password (min 6 characters)"
+          placeholder="Enter your 6-digit PIN"
           placeholderTextColor="#888"
-          value={password}
-          onChangeText={setPassword}
+          value={pin}
+          onChangeText={handlePinChange}
           secureTextEntry
-          autoCapitalize="none"
+          keyboardType="numeric"
+          maxLength={6}
         />
       </View>
 
-      {/* Confirm Password */}
+      {/* Confirm PIN */}
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Confirm Password</Text>
+        <Text style={styles.label}>Confirm PIN</Text>
         <TextInput
           style={styles.input}
-          placeholder="Confirm your password"
+          placeholder="Confirm your 6-digit PIN"
           placeholderTextColor="#888"
-          value={confirmPassword}
-          onChangeText={setConfirmPassword}
+          value={confirmPin}
+          onChangeText={handleConfirmPinChange}
           secureTextEntry
-          autoCapitalize="none"
+          keyboardType="numeric"
+          maxLength={6}
         />
+        {pin.length > 0 && confirmPin.length > 0 && pin !== confirmPin && (
+          <Text style={styles.errorText}>PINs do not match</Text>
+        )}
+        {pin.length > 0 && pin.length < 6 && (
+          <Text style={styles.errorText}>PIN must be exactly 6 digits</Text>
+        )}
+      </View>
+
+      {/* PIN Guidelines */}
+      <View style={styles.pinGuidelines}>
+        <Text style={styles.guidelinesText}>
+          • PIN must be exactly 6 digits{'\n'}
+          • Use only numbers{'\n'}
+          • Avoid simple patterns (123456, 111111)
+        </Text>
       </View>
 
       {/* Address Section Header */}
@@ -260,15 +398,21 @@ const RegisterScreen: React.FC = () => {
         </View>
         
         <View style={[styles.inputGroup, styles.halfWidth]}>
-          <Text style={styles.label}>ZIP Code</Text>
+          <Text style={styles.label}>PIN Code (6 digits)</Text>
           <TextInput
             style={styles.input}
-            placeholder="ZIP Code"
+            placeholder="PIN Code"
             placeholderTextColor="#888"
             value={zipCode}
-            onChangeText={setZipCode}
+            onChangeText={handleZipCodeChange}
             keyboardType="numeric"
+            maxLength={6}
           />
+          {zipCode.length === 6 && !pincodeValidation.isValid && (
+            <Text style={[styles.errorText, { fontSize: 11, marginTop: 2 }]}>
+              {pincodeValidation.message}
+            </Text>
+          )}
         </View>
       </View>
 
@@ -355,6 +499,23 @@ const styles = StyleSheet.create({
   phoneInput: {
     flex: 1,
     fontSize: 16,
+  },
+  errorText: {
+    color: RED_COLOR,
+    fontSize: 12,
+    marginTop: 4,
+  },
+  pinGuidelines: {
+    backgroundColor: '#f8f9fa',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 15,
+    width: '100%',
+  },
+  guidelinesText: {
+    fontSize: 12,
+    color: '#666',
+    lineHeight: 16,
   },
   registerButton: {
     backgroundColor: RED_COLOR,

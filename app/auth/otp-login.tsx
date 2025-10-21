@@ -1,12 +1,12 @@
-// app/auth/login.tsx
-import LoginScreen from '@/components/LoginScreen';
+// app/auth/otp-login.tsx
+import AuthScreen from '@/components/AuthScreen';
 import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-export default function LoginPage() {
+export default function OTPLoginPage() {
   return (
     <SafeAreaView style={styles.container}>
-      <LoginScreen />
+      <AuthScreen />
     </SafeAreaView>
   );
 }

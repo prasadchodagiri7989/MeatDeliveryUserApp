@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -14,6 +15,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AddAddressRequest, addressService } from '../services/addressService';
+import { validateAddressPincode } from '../utils/deliveryService';
 
 const RED_COLOR = '#D13635';
 const LIGHT_GRAY = '#f5f5f5';
@@ -55,6 +57,12 @@ const AddAddressScreen: React.FC<AddAddressScreenProps> = ({ onAddressAdded }) =
       newErrors.zipCode = 'ZIP code is required';
     } else if (!/^\d{6}$/.test(formData.zipCode.trim())) {
       newErrors.zipCode = 'Please enter a valid 6-digit ZIP code';
+    } else {
+      // Check pincode serviceability
+      const pincodeValidation = validateAddressPincode(formData.zipCode.trim());
+      if (!pincodeValidation.isValid) {
+        newErrors.zipCode = pincodeValidation.message;
+      }
     }
 
     setErrors(newErrors);
@@ -78,6 +86,11 @@ const AddAddressScreen: React.FC<AddAddressScreenProps> = ({ onAddressAdded }) =
 
   const handleSaveAddress = async () => {
     if (!validateForm()) {
+      // Check if the error is related to pincode serviceability
+      const pincodeValidation = validateAddressPincode(formData.zipCode.trim());
+      if (formData.zipCode.trim() && !/^\d{6}$/.test(formData.zipCode.trim()) === false && !pincodeValidation.isValid) {
+        Alert.alert('Service Area', pincodeValidation.message);
+      }
       return;
     }
 

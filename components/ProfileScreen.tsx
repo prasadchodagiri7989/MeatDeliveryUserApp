@@ -2,17 +2,18 @@ import { AntDesign, Feather, Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    Alert,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
 import { addressService } from '../services/addressService';
 import { orderService } from '../services/orderService';
+import { NotificationTester } from './NotificationTester';
 
 const RED_COLOR = '#D13635';
 const LIGHT_GRAY = '#f5f5f5';
@@ -337,6 +338,9 @@ const ProfileScreen: React.FC = () => {
         
         {/* Profile Stats */}
         <ProfileStats />
+        
+        {/* Notification Testing */}
+        <NotificationTester title="Push Notifications" />
         
         {/* Menu Items */}
         <View style={styles.menuContainer}>

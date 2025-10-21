@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { OnboardingService } from '../utils/onboardingService';
+import { cleanupExpiredSessions } from '../utils/sessionManager';
 
 export default function Index() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
@@ -10,15 +11,19 @@ export default function Index() {
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
 
   useEffect(() => {
-    checkOnboardingStatus();
+    initializeApp();
   }, []);
 
-  const checkOnboardingStatus = async () => {
+  const initializeApp = async () => {
     try {
+      // Clean up any expired sessions first
+      await cleanupExpiredSessions();
+      
+      // Check onboarding status
       const completed = await OnboardingService.hasCompletedOnboarding();
       setHasCompletedOnboarding(completed);
     } catch (error) {
-      console.error('Error checking onboarding status:', error);
+      console.error('Error initializing app:', error);
       // If there's an error, default to showing onboarding
       setHasCompletedOnboarding(false);
     } finally {

@@ -2,13 +2,15 @@ import { AntDesign, Feather, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    StyleSheet,
-    Switch,
-    Text,
-    TouchableOpacity,
-    View,
+  Alert,
+  StyleSheet,
+  Switch,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNotificationContext } from '../contexts/NotificationContext';
 
 // Color constants
 const PRIMARY_RED = '#D32F2F';
@@ -33,8 +35,13 @@ interface Setting {
 
 const SettingsScreen: React.FC = () => {
   const router = useRouter();
-  
-  // State for toggle switches
+  const { 
+    hasNotificationPermission, 
+    pushToken, 
+    requestPermissions, 
+    scheduleTestNotification,
+    isRegistering
+  } = useNotificationContext();  // State for toggle switches
   const [darkModeEnabled, setDarkModeEnabled] = useState(true);
   const [autoUpdateEnabled, setAutoUpdateEnabled] = useState(true);
 
@@ -61,7 +68,29 @@ const SettingsScreen: React.FC = () => {
 
   // Handle notification settings
   const handleNotificationSettings = () => {
+    const permissionStatus = hasNotificationPermission ? 'Enabled' : 'Disabled';
+    const tokenStatus = pushToken ? 'Connected' : 'Not Connected';
     
+    Alert.alert(
+      'Notification Settings',
+      `Permission: ${permissionStatus}\nPush Token: ${tokenStatus}\n\nWhat would you like to do?`,
+      [
+        {
+          text: 'Request Permissions',
+          onPress: requestPermissions,
+          style: 'default',
+        },
+        {
+          text: 'Test Notification',
+          onPress: scheduleTestNotification,
+          style: 'default',
+        },
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+      ]
+    );
   };
 
   // Handle auto-update toggle
@@ -192,10 +221,19 @@ const SettingsScreen: React.FC = () => {
           <AntDesign name="left" size={24} color={DARK_GRAY} />
         </TouchableOpacity>
         
-        <Text style={styles.headerTitle}>Setttings</Text>
+        <Text style={styles.headerTitle}>Settings</Text>
         
-        {/* Empty view for centering the title */}
-        <View style={styles.backButton} />
+        {/* Notification Status Indicator */}
+        <TouchableOpacity style={styles.notificationStatus} onPress={handleNotificationSettings}>
+          <Feather 
+            name="bell" 
+            size={20} 
+            color={hasNotificationPermission ? PRIMARY_RED : MEDIUM_GRAY} 
+          />
+          {isRegistering && (
+            <View style={styles.loadingDot} />
+          )}
+        </TouchableOpacity>
       </View>
 
       {/* Settings List */}
@@ -347,6 +385,24 @@ const styles = StyleSheet.create({
   buildText: {
     fontSize: 12,
     color: MEDIUM_GRAY,
+  },
+
+  notificationStatus: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+
+  loadingDot: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: PRIMARY_RED,
   },
 });
 

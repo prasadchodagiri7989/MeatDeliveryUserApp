@@ -1,6 +1,6 @@
 import { AntDesign, Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     FlatList,
@@ -27,9 +27,10 @@ interface SearchResultsScreenProps {
 
 const SearchResultsScreen: React.FC<SearchResultsScreenProps> = () => {
   const router = useRouter();
-  const { q: initialQuery } = useLocalSearchParams<{ q: string }>();
+  const { q: initialQuery, category } = useLocalSearchParams<{ q: string; category: string }>();
   
   const [searchQuery, setSearchQuery] = useState(initialQuery || '');
+  const [selectedCategory] = useState(category || '');
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,19 +41,24 @@ const SearchResultsScreen: React.FC<SearchResultsScreenProps> = () => {
   };
 
   // Perform search
-  const performSearch = async (query: string) => {
-    if (!query.trim()) {
-      setProducts([]);
-      return;
-    }
-
+  const performSearch = useCallback(async (query: string) => {
     try {
-      console.log('Starting search for:', query.trim()); // Debug log
+      console.log('Starting search for:', query.trim(), 'Category:', selectedCategory); // Debug log
       setLoading(true);
       setError(null);
       
-      const results = await productService.searchProducts(query.trim());
-      console.log('Search results:', results, 'Length:', results?.length); // Debug log
+      let results: Product[] = [];
+      
+      if (selectedCategory && selectedCategory.trim()) {
+        // If category is specified, get products by category
+        results = await productService.getProductsByCategory(selectedCategory.trim());
+        console.log('Category results:', results, 'Length:', results?.length); // Debug log
+      } else if (query.trim()) {
+        // Otherwise perform regular search
+        results = await productService.searchProducts(query.trim());
+        console.log('Search results:', results, 'Length:', results?.length); // Debug log
+      }
+      
       setProducts(results);
     } catch (error: any) {
       console.error('Search error:', error);
@@ -62,7 +68,7 @@ const SearchResultsScreen: React.FC<SearchResultsScreenProps> = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedCategory]);
 
   // Handle search input
   const handleSearch = () => {
@@ -78,21 +84,21 @@ const SearchResultsScreen: React.FC<SearchResultsScreenProps> = () => {
     router.push(`/product-detail?id=${product._id || product.id}` as any);
   };
 
-  // Pull to refresh
+  // Handle refresh for category or search
   const handleRefresh = async () => {
-    if (searchQuery.trim()) {
-      setRefreshing(true);
+    setRefreshing(true);
+    if (selectedCategory || searchQuery.trim()) {
       await performSearch(searchQuery);
-      setRefreshing(false);
     }
+    setRefreshing(false);
   };
 
   // Initial search when component mounts
   useEffect(() => {
-    if (initialQuery) {
-      performSearch(initialQuery);
+    if (initialQuery || category) {
+      performSearch(initialQuery || '');
     }
-  }, [initialQuery]);
+  }, [initialQuery, category, performSearch]);
 
   // Format price
   const formatPrice = (price: number, discountedPrice?: number) => {
@@ -211,7 +217,11 @@ const SearchResultsScreen: React.FC<SearchResultsScreenProps> = () => {
           <AntDesign name="left" size={20} color="#333" />
         </TouchableOpacity>
         
-        <View style={styles.searchInputContainer}>
+        {selectedCategory && (
+          <Text style={styles.headerTitle}>{selectedCategory}</Text>
+        )}
+        
+        <View style={[styles.searchInputContainer, selectedCategory && styles.searchInputWithTitle]}>
           <TextInput
             style={styles.searchInput}
             value={searchQuery}
@@ -232,7 +242,9 @@ const SearchResultsScreen: React.FC<SearchResultsScreenProps> = () => {
       {!loading && !error && products.length > 0 && (
         <View style={styles.resultsHeader}>
           <Text style={styles.resultsCount}>
-            {products.length} products found for &quot;{searchQuery}&quot;
+            {products.length} products found
+            {selectedCategory && ` in ${selectedCategory}`}
+            {searchQuery && !selectedCategory && ` for "${searchQuery}"`}
           </Text>
         </View>
       )}
@@ -311,6 +323,17 @@ const styles = StyleSheet.create({
 
   searchButton: {
     padding: 8,
+  },
+
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: DARK_GRAY,
+    marginRight: 12,
+  },
+
+  searchInputWithTitle: {
+    flex: 1,
   },
 
   // Results Header
