@@ -22,7 +22,14 @@
       "predictiveBackGestureEnabled": false,
       "package": "com.batman1428.MeatDeliveryUserApp",
       "versionCode": 1,
+      "allowBackup": false,
       "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE",
+        "VIBRATE",
+        "RECEIVE_BOOT_COMPLETED",
+        "WAKE_LOCK",
+        "com.google.android.c2dm.permission.RECEIVE",
         "INTERNET",
         "ACCESS_NETWORK_STATE",
         "VIBRATE",
@@ -31,6 +38,10 @@
         "com.google.android.c2dm.permission.RECEIVE"
       ],
       "blockedPermissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "CAMERA",
+        "RECORD_AUDIO",
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
         "CAMERA",
@@ -47,7 +58,6 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/images/notification-icon.png",
           "color": "#D13635",
           "defaultChannel": "default"
         }
@@ -77,6 +87,12 @@
       "apiHost": "192.168.1.9",
       "productionApiUrl": "https://meat-delivery-backend-bowm.vercel.app/api",
       "productionApiHost": "meat-delivery-backend-bowm.vercel.app"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/2ba16e37-acef-4bf5-a74b-ab54e880e43e"
     }
   }
 }
