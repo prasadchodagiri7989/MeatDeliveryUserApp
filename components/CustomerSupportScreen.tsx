@@ -2,12 +2,12 @@ import { AntDesign, Feather, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import {
-    Linking,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Linking,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -54,9 +54,7 @@ const supportOptions = [
 
 // Operating hours data
 const operatingHours = [
-  { day: 'Monday - Friday', hours: '8:00 AM - 10:00 PM' },
-  { day: 'Saturday', hours: '8:00 AM - 10:00 PM' },
-  { day: 'Sunday', hours: '9:00 AM - 9:00 PM' },
+  { day: 'Everyday', hours: '7:00 AM - 7:00 PM' },
 ];
 
 interface SupportOptionProps {
@@ -179,25 +177,6 @@ const CustomerSupportScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* Quick Help */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Quick Help</Text>
-          <View style={styles.quickHelpContainer}>
-            <TouchableOpacity style={styles.quickHelpItem}>
-              <Text style={styles.quickHelpTitle}>Order Status</Text>
-              <Text style={styles.quickHelpDesc}>Track your current orders</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.quickHelpItem}>
-              <Text style={styles.quickHelpTitle}>Return & Refund</Text>
-              <Text style={styles.quickHelpDesc}>Request a return or refund</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.quickHelpItem}>
-              <Text style={styles.quickHelpTitle}>Delivery Issues</Text>
-              <Text style={styles.quickHelpDesc}>Report delivery problems</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
         {/* Emergency Contact */}
         <View style={styles.emergencySection}>
           <Text style={styles.emergencyTitle}>Emergency Contact</Text>
@@ -206,10 +185,10 @@ const CustomerSupportScreen: React.FC = () => {
           </Text>
           <TouchableOpacity 
             style={styles.emergencyButton}
-            onPress={() => Linking.openURL('tel:+919876543210')}
+            onPress={() => Linking.openURL('tel:+919704883731')}
           >
             <Feather name="phone" size={20} color="white" />
-            <Text style={styles.emergencyButtonText}>Call Now: +91 9876543210</Text>
+            <Text style={styles.emergencyButtonText}>Call Now: +91 9704883731</Text>
           </TouchableOpacity>
         </View>
 

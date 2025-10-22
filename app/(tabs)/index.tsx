@@ -1,7 +1,9 @@
+
 import BannerCarousel from "@/components/BannerCarousel";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from "expo-linear-gradient";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -17,15 +19,83 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import BannerSection from "../../components/BannerSection";
 import ProductCard from "../../components/ProductCard";
 import SessionMonitor from "../../components/SessionMonitor";
+import { getCurrentConfig } from "../../config/api";
 import { useAuth } from "../../contexts/AuthContext";
+import { useCart } from '../../contexts/CartContext';
 import { Address, addressService } from "../../services/addressService";
 import { Product, productService } from "../../services/productService";
 
 
 
+
+
+
+
 export default function HomeScreen() {
+
+    // Fetch all services on app reload/mount
+  useEffect(() => {
+    const fetchAllServices = async () => {
+      try {
+        // Addresses
+        await addressService.getSavedAddresses?.();
+        // Products
+        await productService.getAllProducts?.();
+        // Cart
+        if (typeof import('../../services/cartService').then === 'function') {
+          const { cartService } = await import('../../services/cartService');
+          await cartService.getCart?.();
+        }
+        // Orders
+        if (typeof import('../../services/orderService').then === 'function') {
+          const { orderService } = await import('../../services/orderService');
+          await orderService.getUserOrders?.();
+        }
+        // Notifications
+        if (typeof import('../../services/notificationService').then === 'function') {
+          const { notificationService } = await import('../../services/notificationService');
+          await notificationService.getNotifications?.();
+        }
+        // Coupons
+        if (typeof import('../../services/couponService').then === 'function') {
+          const { couponService } = await import('../../services/couponService');
+          await couponService.getActiveCoupons?.();
+        }
+        // User profile
+        if (typeof import('../../services/authService').then === 'function') {
+          const { authService } = await import('../../services/authService');
+          await authService.getMe?.();
+        }
+      } catch (error) {
+        console.error('Error fetching all services on reload:', error);
+      }
+    };
+    fetchAllServices();
+  }, []);
+  // Always fetch /api/addresses when homepage opens
+  useEffect(() => {
+    const fetchAllAddresses = async () => {
+      try {
+        const API_BASE_URL = getCurrentConfig().API_URL;
+        const token = await AsyncStorage.getItem('authToken');
+        const headers = {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        };
+        await fetch(`${API_BASE_URL}/addresses`, {
+          method: 'GET',
+          headers,
+        });
+        // You can use the response if needed
+      } catch (error) {
+        console.error('Error fetching all addresses:', error);
+      }
+    };
+    fetchAllAddresses();
+  }, []);
   const router = useRouter();
   const { user } = useAuth();
+  const { incrementCartCount } = useCart();
   const [searchQuery, setSearchQuery] = useState("");
   const [premiumProducts, setPremiumProducts] = useState<Product[]>([]);
   const [loadingPremium, setLoadingPremium] = useState(true);
@@ -41,7 +111,7 @@ export default function HomeScreen() {
         setLoadingPremium(true);
         const products = await productService.getProductsByCategory("premium");
         // Limit to 4 products for the grid
-        setPremiumProducts(products.slice(0, 4));
+        setPremiumProducts(products);
       } catch (error) {
         console.error("Error fetching premium products:", error);
         // Set empty array if fetch fails
@@ -84,7 +154,14 @@ export default function HomeScreen() {
 
     try {
       setLoadingAddress(true);
-      const defaultAddress = await addressService.getDefaultAddress();
+      let defaultAddress = await addressService.getDefaultAddress();
+      // If no default address, try to fetch all and use the first one
+      if (!defaultAddress) {
+        const allAddresses = await addressService.getSavedAddresses();
+        if (allAddresses && allAddresses.length > 0) {
+          defaultAddress = allAddresses[0];
+        }
+      }
       setCurrentAddress(defaultAddress);
     } catch (error) {
       console.error("Error fetching default address:", error);
@@ -94,26 +171,17 @@ export default function HomeScreen() {
     }
   }, [user]);
 
-  // Fetch user's default address on initial load
+
+  // Fetch user's default address once on initial mount
   useEffect(() => {
     fetchDefaultAddress();
   }, [fetchDefaultAddress]);
-
-  // Refresh default address when screen comes into focus
-  // This ensures the address updates when user changes default address
-  useFocusEffect(
-    useCallback(() => {
-      fetchDefaultAddress();
-    }, [fetchDefaultAddress])
-  );
 
   const handleNotificationPress = () => {
     router.push('/other/notifications');
   };
 
-  const handleAddressPress = () => {
-    router.push('/address-selection');
-  };
+
 
   const handleSearch = () => {
     if (searchQuery.trim()) {
@@ -129,8 +197,17 @@ export default function HomeScreen() {
     router.push(`/product-detail?id=${product._id || product.id}` as any);
   };
 
-  const handleInstantProductPress = (product: Product) => {
-    router.push(`/product-detail?id=${product._id || product.id}` as any);
+
+  // Add to cart handler for instant products
+  const handleAddInstantProductToCart = async (product: Product) => {
+    try {
+      // Add 1 quantity by default
+      await import('../../services/cartService').then(({ cartService }) => cartService.addToCart(product._id || product.id, 1));
+      incrementCartCount();
+    } catch (error) {
+      console.error('Failed to add to cart:', error);
+      // Optionally show a toast or alert
+    }
   };
 
   // Helper function to get address label with fallback
@@ -206,10 +283,7 @@ export default function HomeScreen() {
       <ScrollView style={styles.container}>
         {/* Location + Notifications */}
         <View style={styles.header}>
-          <TouchableOpacity 
-            style={{ flexDirection: "row", alignItems: "center" }} 
-            onPress={handleAddressPress}
-          >
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
             <Ionicons name="location-sharp" size={20} color="#fff" />
             <View style={{ marginLeft: 8 }}>
               <Text style={styles.locationText}>
@@ -221,11 +295,14 @@ export default function HomeScreen() {
                 }
               </Text>
               <Text style={styles.cityText}>
-                {getLocationText()}
+                {currentAddress && (currentAddress.city || currentAddress.zipCode) 
+                  ? `${currentAddress.city || ''}${currentAddress.city && currentAddress.zipCode ? ', ' : ''}${currentAddress.zipCode || ''}`.trim()
+                  : getLocationText()
+                }
               </Text>
             </View>
-            <Ionicons name="chevron-down" size={16} color="#fff" style={{ marginLeft: 5 }} />
-          </TouchableOpacity>
+            {/* No chevron or click */}
+          </View>
           <TouchableOpacity onPress={handleNotificationPress}>
           <Ionicons name="notifications-outline" size={24} color="#fff" />
         </TouchableOpacity>
@@ -288,7 +365,7 @@ export default function HomeScreen() {
                   {product.name}
                 </Text>
                 <Text style={styles.categoryPrice}>
-                  ₹{Math.round(product.discountedPrice || product.price)}/kg
+                  ₹{parseInt((product.discountedPrice || product.price).toString(), 10)}/kg
                 </Text>
               </TouchableOpacity>
             ))}
@@ -321,19 +398,18 @@ export default function HomeScreen() {
             <View style={styles.instantGrid}>
               {instantProducts.map((product, index) => (
                 <View key={product._id || product.id || index} style={styles.instantCard}>
-                  <TouchableOpacity onPress={() => handleInstantProductPress(product)}>
-                    <ProductCard
-                      name={product.name}
-                      price={`₹${Math.round(product.discountedPrice || product.price)}/kg`}
-                      rating={String(product.ratings?.average || product.rating || 4.5)}
-                      time="30 min"
-                      image={
-                        product.image || (product.images && product.images[0]?.url)
-                          ? { uri: product.image || product.images?.[0]?.url }
-                          : require("../../assets/images/instant-pic.png")
-                      }
-                    />
-                  </TouchableOpacity>
+                  <ProductCard
+                    name={product.name}
+                    price={`₹${parseInt((product.discountedPrice || product.price).toString(), 10)}/kg`}
+                    rating={String(product.ratings?.average || product.rating || 4.5)}
+                    time="30 min"
+                    image={
+                      product.image || (product.images && product.images[0]?.url)
+                        ? { uri: product.image || product.images?.[0]?.url }
+                        : require("../../assets/images/instant-pic.png")
+                    }
+                    onAdd={() => handleAddInstantProductToCart(product)}
+                  />
                 </View>
               ))}
             </View>
@@ -345,7 +421,7 @@ export default function HomeScreen() {
         </LinearGradient>
       </View>
 
-      {/* Exclusive Collection */}
+      {/* Exclusive Collection: Only data from premium category */}
       <BannerSection />
     </ScrollView>
     </SafeAreaView>

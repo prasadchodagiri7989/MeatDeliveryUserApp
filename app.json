@@ -85,8 +85,8 @@
       },
       "apiPort": "5000",
       "apiHost": "89.116.122.222",
-      "productionApiUrl": "https://meat-delivery-backend-bowm.vercel.app/api",
-      "productionApiHost": "meat-delivery-backend-bowm.vercel.app"
+      "productionApiUrl": "https://89.116.122.222/api",
+      "productionApiHost": "89.116.122.222"
     },
     "runtimeVersion": {
       "policy": "appVersion"

@@ -2,15 +2,16 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useCart } from '../contexts/CartContext';
 import { Order } from '../services/orderService';
 
 const RED_COLOR = '#D13635';
@@ -25,6 +26,7 @@ const OrderSuccessScreen: React.FC<OrderSuccessScreenProps> = ({ order: propOrde
   const params = useLocalSearchParams();
   const [order, setOrder] = useState<Order | null>(propOrder || null);
   const [loading, setLoading] = useState(!propOrder);
+  const { refreshCartCount } = useCart();
 
   useEffect(() => {
     // If order data is passed as params (serialized), parse it
@@ -38,7 +40,9 @@ const OrderSuccessScreen: React.FC<OrderSuccessScreenProps> = ({ order: propOrde
         setLoading(false);
       }
     }
-  }, [params.orderData]);
+    // Always clear cart count after order success
+    refreshCartCount();
+  }, [params.orderData, refreshCartCount]);
 
   const handleExploreMore = () => {
     router.replace('/(tabs)');
@@ -108,10 +112,7 @@ const OrderSuccessScreen: React.FC<OrderSuccessScreenProps> = ({ order: propOrde
               <Text style={styles.infoLabel}>Payment Method:</Text>
               <Text style={styles.infoValue}>Cash on Delivery</Text>
             </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Estimated Delivery:</Text>
-              <Text style={styles.infoValue}>30-45 minutes</Text>
-            </View>
+
           </View>
         </View>
 

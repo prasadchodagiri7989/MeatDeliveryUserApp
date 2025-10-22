@@ -8,7 +8,7 @@ const CONFIG = {
     API_PORT: Constants.expoConfig?.extra?.apiPort || '5000',
   },
   production: {
-    API_HOST: Constants.expoConfig?.extra?.productionApiHost || 'meat-delivery-backend-bowm.vercel.app',
+    API_HOST: Constants.expoConfig?.extra?.productionApiHost || '89.116.122.222',
     API_PORT: '443',
   },
 };

@@ -2,14 +2,14 @@ import { AntDesign } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
@@ -61,11 +61,14 @@ const EditProfileScreen: React.FC = () => {
       }
     }
     
+    // Strip '+91' or '91' from phone number for display
+    let phone = user?.phone || '';
+    phone = phone.replace(/^\+91/, '');
     return {
       firstName: user?.firstName || '',
       lastName: user?.lastName || '',
       email: user?.email || '',
-      phone: user?.phone || '',
+      phone,
       ...addressData,
     };
   });
@@ -270,14 +273,13 @@ const EditProfileScreen: React.FC = () => {
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Phone Number *</Text>
             <TextInput
-              style={[styles.textInput, errors.phone && styles.inputError]}
+              style={[styles.textInput, styles.readOnlyInput]}
               value={formData.phone}
-              onChangeText={(text) => handleInputChange('phone', text)}
               placeholder="Enter your phone number"
               placeholderTextColor="#999"
               keyboardType="phone-pad"
               maxLength={10}
-              editable={!loading}
+              editable={false}
             />
             {errors.phone && (
               <Text style={styles.errorText}>{errors.phone}</Text>
@@ -286,68 +288,7 @@ const EditProfileScreen: React.FC = () => {
         </View>
 
         {/* Address Section */}
-        <View style={styles.formSection}>
-          <Text style={styles.sectionTitle}>Address Information</Text>
-
-          {/* Street Address */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Street Address</Text>
-            <TextInput
-              style={styles.textInput}
-              value={formData.street}
-              onChangeText={(text) => handleInputChange('street', text)}
-              placeholder="Enter your street address"
-              placeholderTextColor="#999"
-              multiline
-              numberOfLines={2}
-              editable={!loading}
-            />
-          </View>
-
-          {/* City */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>City</Text>
-            <TextInput
-              style={styles.textInput}
-              value={formData.city}
-              onChangeText={(text) => handleInputChange('city', text)}
-              placeholder="Enter your city"
-              placeholderTextColor="#999"
-              autoCapitalize="words"
-              editable={!loading}
-            />
-          </View>
-
-          {/* State and Zip Code Row */}
-          <View style={styles.rowInputGroup}>
-            <View style={styles.halfInputGroup}>
-              <Text style={styles.inputLabel}>State</Text>
-              <TextInput
-                style={styles.textInput}
-                value={formData.state}
-                onChangeText={(text) => handleInputChange('state', text)}
-                placeholder="State"
-                placeholderTextColor="#999"
-                autoCapitalize="words"
-                editable={!loading}
-              />
-            </View>
-
-            <View style={styles.halfInputGroup}>
-              <Text style={styles.inputLabel}>Zip Code</Text>
-              <TextInput
-                style={styles.textInput}
-                value={formData.zipCode}
-                onChangeText={(text) => handleInputChange('zipCode', text)}
-                placeholder="Zip Code"
-                placeholderTextColor="#999"
-                keyboardType="numeric"
-                maxLength={6}
-                editable={!loading}
-              />
-            </View>
-          </View>
-        </View>
+        {/* Address Section removed as requested */}
 
         {/* Additional Info */}
         <View style={styles.infoSection}>

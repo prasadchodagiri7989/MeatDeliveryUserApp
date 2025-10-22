@@ -1,5 +1,4 @@
 import { Ionicons } from "@expo/vector-icons";
-import React from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 interface ProductCardProps {
@@ -8,6 +7,7 @@ interface ProductCardProps {
   rating: string;
   time: string;
   image?: any;
+  onAdd?: () => void;
 }
 
 export default function ProductCard({
@@ -16,6 +16,7 @@ export default function ProductCard({
   rating,
   time,
   image,
+  onAdd,
 }: ProductCardProps) {
   return (
     <View style={styles.card}>
@@ -27,7 +28,7 @@ export default function ProductCard({
       />
 
       {/* Add Button */}
-      <TouchableOpacity style={styles.addButton}>
+      <TouchableOpacity style={styles.addButton} onPress={onAdd}>
         <Ionicons name="add" size={20} color="#fff" />
       </TouchableOpacity>
 

@@ -1,13 +1,12 @@
-import React, { useRef, useState } from "react";
-import { View, ScrollView, Image, StyleSheet, Dimensions } from "react-native";
+import { useRef, useState } from "react";
+import { Dimensions, Image, ScrollView, StyleSheet, View } from "react-native";
 
 const { width } = Dimensions.get("window");
 
 const banners = [
   require("../assets/images/AD-Slide.png"),
-  require("../assets/images/AD-Slide.png"),
-  require("../assets/images/AD-Slide.png"),
-  require("../assets/images/AD-Slide.png"),
+  require("../assets/images/banner-2.jpg"),
+  require("../assets/images/banner-3.jpg"),
 ];
 
 export default function BannerCarousel() {

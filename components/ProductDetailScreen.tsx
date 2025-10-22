@@ -248,14 +248,7 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = () => {
         
         <Text style={styles.headerTitle}>Product Details</Text>
         
-        <View style={styles.headerActions}>
-          <TouchableOpacity style={styles.iconButton}>
-            <Ionicons name="heart-outline" size={24} color="#333" />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton}>
-            <Ionicons name="share-outline" size={24} color="#333" />
-          </TouchableOpacity>
-        </View>
+        {/* Like and Share buttons removed as requested */}
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -676,6 +669,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
     lineHeight: 24,
+    textAlign: 'center',
   },
 
   detailRow: {

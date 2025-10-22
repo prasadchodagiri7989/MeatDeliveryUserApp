@@ -1,36 +1,85 @@
-import React from 'react';
-import { View, Text, ScrollView, Image, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useCart } from '../contexts/CartContext';
+import { cartService } from '../services/cartService';
+import { Product, productService } from '../services/productService';
 
 const { width } = Dimensions.get('window');
 const BANNER_WIDTH = width * 0.7; // 80% of screen width
 const BANNER_HEIGHT = (BANNER_WIDTH * 9) / 21; // 21:9 aspect ratio
 
-const banners = [
-  { title: "Exclusive Rump Roast", rating: 5.0, image: require('../assets/images/last-banner.jpg') },
-  { title: "Premium Rump Rib", rating: 4.9, image: require('../assets/images/last-banner.jpg') },
-  { title: "Chef's Special Cut", rating: 5.0, image: require('../assets/images/last-banner.jpg') },
-];
 
 export default function BannerSection() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { incrementCartCount } = useCart();
+  const [addingId, setAddingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchPremiumProducts = async () => {
+      try {
+        setLoading(true);
+        const premium = await productService.getProductsByCategory('premium');
+        setProducts(premium.slice(0, 3));
+      } catch {
+        setProducts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPremiumProducts();
+  }, []);
+
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Exclusive Collection</Text>
       </View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 10 }}>
-        {banners.map((banner, index) => (
-          <View key={index} style={styles.bannerContainer}>
-            <Image source={banner.image} style={styles.bannerImage} />
-            <View style={styles.overlay}>
-              <Text style={styles.bannerTitle}>{banner.title}</Text>
-              <Text style={styles.bannerRating}>⭐ {banner.rating}</Text>
-              <TouchableOpacity style={styles.addButton}>
-                <Text style={styles.addButtonText}>Add to Cart</Text>
-              </TouchableOpacity>
+      {loading ? (
+        <View style={{ alignItems: 'center', paddingVertical: 30 }}>
+          <ActivityIndicator size="large" color="#D13635" />
+          <Text style={{ marginTop: 10, color: '#666' }}>Loading exclusive products...</Text>
+        </View>
+      ) : (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 10 }}>
+          {products.map((product, index) => (
+            <View key={product._id || product.id || index} style={styles.bannerContainer}>
+              <Image
+                source={
+                  product.image || (product.images && product.images[0]?.url)
+                    ? { uri: product.image || product.images?.[0]?.url }
+                    : require('../assets/images/last-banner.jpg')
+                }
+                style={styles.bannerImage}
+              />
+              <View style={styles.overlay}>
+                <Text style={styles.bannerTitle}>{product.name}</Text>
+                <Text style={styles.bannerRating}>₹{parseInt((product.discountedPrice || product.price).toString(), 10)}/kg</Text>
+                <TouchableOpacity
+                  style={styles.addButton}
+                  disabled={addingId === (product._id || product.id)}
+                  onPress={async () => {
+                    setAddingId(product._id || product.id);
+                    try {
+                      await cartService.addToCart(product._id || product.id, 1);
+                      incrementCartCount();
+                    } catch {
+                      // Optionally show error feedback
+                    } finally {
+                      setAddingId(null);
+                    }
+                  }}
+                >
+                  <Text style={styles.addButtonText}>
+                    {addingId === (product._id || product.id) ? 'Adding...' : 'Add to Cart'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
-        ))}
-      </ScrollView>
+          ))}
+        </ScrollView>
+      )}
     </View>
   );
 }

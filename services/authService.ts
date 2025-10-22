@@ -1,5 +1,23 @@
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getCurrentConfig } from '../config/api';
+
+// Helper to get the full auth session (for login screen session check)
+export const getAuthSession = async (): Promise<SessionData | null> => {
+  try {
+    const sessionData = await AsyncStorage.getItem('authSession');
+    if (!sessionData) return null;
+    const session: SessionData = JSON.parse(sessionData);
+    const now = Date.now();
+    if (now > session.expiresAt) {
+      await removeAuthSession();
+      return null;
+    }
+    return session;
+  } catch {
+    return null;
+  }
+};
 
 const API_BASE_URL = getCurrentConfig().API_URL;
 

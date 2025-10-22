@@ -1,6 +1,6 @@
 import { AntDesign, Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -36,14 +36,11 @@ const DeliveryLocation: React.FC = () => {
       // First try to get default address from backend
       const defaultAddress = await addressService.getDefaultAddress();
       if (defaultAddress) {
-        const { street, city, state, zipCode } = defaultAddress;
-        const parts = [];
-        if (street) parts.push(street);
-        if (city) parts.push(city);
-        if (state) parts.push(state);
-        if (zipCode) parts.push(zipCode);
-        
-        const addressString = parts.join(', ');
+        const { city, zipCode } = defaultAddress;
+        let addressString = '';
+        if (city && zipCode) addressString = `${city}, ${zipCode}`;
+        else if (city) addressString = city;
+        else if (zipCode) addressString = zipCode;
         if (addressString) {
           setUserLocation(addressString);
           return;
@@ -59,35 +56,18 @@ const DeliveryLocation: React.FC = () => {
         let addressString = '';
         
         if (user.address) {
-          if (typeof user.address === 'string') {
-            addressString = user.address;
-          } else if (typeof user.address === 'object') {
-            // Convert address object to string
-            const { street, city, state, zipCode, country } = user.address;
-            const parts = [];
-            if (street) parts.push(street);
-            if (city) parts.push(city);
-            if (state) parts.push(state);
-            if (zipCode) parts.push(zipCode);
-            if (country) parts.push(country);
-            addressString = parts.join(', ');
+          if (typeof user.address === 'object') {
+            const { city, zipCode } = user.address;
+            if (city && zipCode) addressString = `${city}, ${zipCode}`;
+            else if (city) addressString = city;
+            else if (zipCode) addressString = zipCode;
           }
-        } else if (user.location) {
-          if (typeof user.location === 'string') {
-            addressString = user.location;
-          } else if (typeof user.location === 'object') {
-            // Convert location object to string
-            const { street, city, state, zipCode, country } = user.location;
-            const parts = [];
-            if (street) parts.push(street);
-            if (city) parts.push(city);
-            if (state) parts.push(state);
-            if (zipCode) parts.push(zipCode);
-            if (country) parts.push(country);
-            addressString = parts.join(', ');
-          }
+        } else if (user.location && typeof user.location === 'object') {
+          const { city, zipCode } = user.location;
+          if (city && zipCode) addressString = `${city}, ${zipCode}`;
+          else if (city) addressString = city;
+          else if (zipCode) addressString = zipCode;
         }
-        
         setUserLocation(addressString || 'Select Location');
       } else {
         setUserLocation('Select Location');
@@ -144,11 +124,13 @@ const DeliveryLocation: React.FC = () => {
 const CartItemCard: React.FC<{ 
   item: CartItem; 
   onUpdateQuantity: (itemId: string, quantity: number) => void; 
-  onRemove: (itemId: string) => void 
+  onRemove: (itemId: string) => void; 
+  deliveryInfo: string;
 }> = ({ 
   item, 
   onUpdateQuantity, 
-  onRemove 
+  onRemove, 
+  deliveryInfo
 }) => {
   const increaseQuantity = () => {
     onUpdateQuantity(item._id, item.quantity + 1);
@@ -189,6 +171,8 @@ const CartItemCard: React.FC<{
         <View style={styles.cartItemInfo}>
           <View style={styles.cartItemHeader}>
             <Text style={styles.cartItemName}>{item.product?.name || 'Unknown Product'}</Text>
+          </View>
+          <View style={styles.freshTagRow}>
             <View style={styles.instantBadge}>
               <Text style={styles.instantText}>Fresh</Text>
             </View>
@@ -213,9 +197,7 @@ const CartItemCard: React.FC<{
             </View>
           )}
           
-          <Text style={styles.deliveryInfo}>
-            Will be delivered in 30-45 min
-          </Text>
+          <Text style={styles.deliveryInfo}>{deliveryInfo}</Text>
           
           <View style={styles.quantityController}>
             <TouchableOpacity 
@@ -568,11 +550,19 @@ const CartPage: React.FC = () => {
   const [updating, setUpdating] = useState(false);
   const { refreshCartCount } = useCart();
 
+
   // Load cart data on component mount
   useEffect(() => {
     loadCartData();
     loadSuggestedProducts();
   }, []);
+
+  // Always fetch cart from backend when page is focused
+  useFocusEffect(
+    useCallback(() => {
+      loadCartData();
+    }, [])
+  );
 
   const loadCartData = async () => {
     try {
@@ -699,16 +689,23 @@ const CartPage: React.FC = () => {
       >
         {/* Cart Items */}
         <View style={styles.cartItemsSection}>
-          {cart?.items
-            .filter(item => item.product !== null) // Filter out items with null products
-            .map(item => (
-            <CartItemCard
-              key={item._id}
-              item={item}
-              onUpdateQuantity={updateQuantity}
-              onRemove={removeItem}
-            />
-          ))}
+          {(() => {
+            const validItems = cart?.items.filter(item => item.product !== null) || [];
+            // If all products are normal (category === 'normal'), show 60-90 min, else next day
+            const allNormal = validItems.length > 0 && validItems.every(item => item.product?.category === 'normal');
+            const deliveryInfo = allNormal
+              ? 'Will be delivered in 60-90 min'
+              : 'Will be delivered next day';
+            return validItems.map(item => (
+              <CartItemCard
+                key={item._id}
+                item={item}
+                onUpdateQuantity={updateQuantity}
+                onRemove={removeItem}
+                deliveryInfo={deliveryInfo}
+              />
+            ));
+          })()}
           
           {/* Handle empty cart or all items unavailable */}
           {(!cart || cart.items.length === 0) && (
@@ -919,6 +916,13 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#333',
     flex: 1,
+  },
+
+  freshTagRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+    marginTop: -4,
   },
 
   instantBadge: {

@@ -2,11 +2,11 @@ import { AntDesign } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import {
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -138,15 +138,7 @@ const FAQScreen: React.FC = () => {
           ))}
         </View>
 
-        <View style={styles.contactSection}>
-          <Text style={styles.contactTitle}>Still have questions?</Text>
-          <Text style={styles.contactText}>
-            Our customer support team is here to help you 24/7.
-          </Text>
-          <TouchableOpacity style={styles.contactButton}>
-            <Text style={styles.contactButtonText}>Contact Support</Text>
-          </TouchableOpacity>
-        </View>
+      
 
         <View style={styles.bottomSpacing} />
       </ScrollView>

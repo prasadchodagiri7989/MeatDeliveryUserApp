@@ -15,24 +15,25 @@ export default function RootLayout() {
             <ToastProvider>
               <StatusBar style="dark" backgroundColor="#ffffff" />
               <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="onboard/steps" />
-            <Stack.Screen name="auth/login" />
-            <Stack.Screen name="auth/otp-login" />
-            <Stack.Screen name="auth/register" />
-            <Stack.Screen name="auth/forgot-password" />
-            <Stack.Screen name="auth/set-pin" />
-            <Stack.Screen name="auth/otp" />
-            <Stack.Screen name="auth/success" />
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="other/notifications" />
-            <Stack.Screen name="other/personal-info" />
-            <Stack.Screen name="other/my-orders" />
-            <Stack.Screen name="other/order-details" />
-            <Stack.Screen name="other/address-management" />
-            <Stack.Screen name="other/privacy-security" />
-            <Stack.Screen name="other/settings" />
-            <Stack.Screen name="other/help-support" />
-          </Stack>
+                <Stack.Screen name="landing" />
+                <Stack.Screen name="onboard/steps" />
+                <Stack.Screen name="auth/login" />
+                <Stack.Screen name="auth/otp-login" />
+                <Stack.Screen name="auth/register" />
+                <Stack.Screen name="auth/forgot-password" />
+                <Stack.Screen name="auth/set-pin" />
+                <Stack.Screen name="auth/otp" />
+                <Stack.Screen name="auth/success" />
+                <Stack.Screen name="(tabs)" />
+                <Stack.Screen name="other/notifications" />
+                <Stack.Screen name="other/personal-info" />
+                <Stack.Screen name="other/my-orders" />
+                <Stack.Screen name="other/order-details" />
+                <Stack.Screen name="other/address-management" />
+                <Stack.Screen name="other/privacy-security" />
+                <Stack.Screen name="other/settings" />
+                <Stack.Screen name="other/help-support" />
+              </Stack>
             </ToastProvider>
           </CartProvider>
         </AuthProvider>

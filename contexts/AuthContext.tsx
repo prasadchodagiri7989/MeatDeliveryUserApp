@@ -25,6 +25,12 @@ export interface User {
   isActive: boolean;
   phoneVerified: boolean;
   lastLogin?: string;
+  // Optional fields from backend
+  fullName?: string;
+  emailVerified?: boolean;
+  otpIsVerified?: boolean;
+  savedAddresses?: any[];
+  [key: string]: any;
 }
 
 // Auth context interface
@@ -125,8 +131,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const updateUser = (userData: Partial<User>) => {
-    if (user) {
+    // If userData looks like a full user object, replace
+    if (userData && userData._id && userData.email && userData.firstName && userData.lastName) {
+      setUser(userData as User);
+    } else if (user) {
       setUser({ ...user, ...userData });
+    } else if (userData) {
+      setUser(userData as User);
     }
   };
 

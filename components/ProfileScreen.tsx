@@ -1,19 +1,19 @@
 import { AntDesign, Feather, Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
-    Alert,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
 import { addressService } from '../services/addressService';
+import { authService } from '../services/authService';
 import { orderService } from '../services/orderService';
-import { NotificationTester } from './NotificationTester';
 
 const RED_COLOR = '#D13635';
 const LIGHT_GRAY = '#f5f5f5';
@@ -89,41 +89,41 @@ const ProfileHeader: React.FC = () => {
   );
 };
 
+
 // ProfileCard Component
 const ProfileCard: React.FC = () => {
   const { user } = useAuth();
-  
-  // Generate user initials from first and last name
+  const [loading] = useState(false); // No longer needed, but keep for UI consistency
+
+  // Generate user initials from first and last name or fullName
   const getUserInitials = () => {
-    if (!user || !user.firstName || !user.lastName) return 'GU';
-    return `${user.firstName.charAt(0).toUpperCase()}${user.lastName.charAt(0).toUpperCase()}`;
+    if (!user) return 'GU';
+    if (user.firstName && user.lastName) {
+      return `${user.firstName.charAt(0).toUpperCase()}${user.lastName.charAt(0).toUpperCase()}`;
+    }
+    if (user.fullName && typeof user.fullName === 'string') {
+      const parts = user.fullName.split(' ');
+      if (parts.length >= 2) {
+        return `${parts[0][0].toUpperCase()}${parts[1][0].toUpperCase()}`;
+      }
+      return parts[0][0].toUpperCase();
+    }
+    return 'GU';
   };
 
   // Format address display
-  const getUserAddress = () => {
-    if (!user?.address) return 'No address available';
-    
-    if (typeof user.address === 'string') {
-      return user.address;
-    }
-    
-    // If address is an object, format it nicely
-    const { street, city, state, zipCode } = user.address;
-    const addressParts = [street, city, state, zipCode].filter(Boolean);
-    return addressParts.length > 0 ? addressParts.join(', ') : 'No address available';
-  };
+
 
   return (
     <View style={styles.profileCard}>
       <View style={styles.profileImageContainer}>
-        <View style={styles.profileInitials}>
-          <Text style={styles.initialsText}>{getUserInitials()}</Text>
-        </View>
+        <Text style={styles.initialsText}>{getUserInitials()}</Text>
       </View>
-      
       <View style={styles.profileInfo}>
         <Text style={styles.profileName}>
-          {user ? `${user.firstName} ${user.lastName}` : 'Guest User'}
+          {user?.fullName && typeof user.fullName === 'string'
+            ? user.fullName
+            : (user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : 'Guest User')}
         </Text>
         <Text style={styles.profileEmail}>
           {user?.email || 'No email available'}
@@ -131,10 +131,7 @@ const ProfileCard: React.FC = () => {
         <Text style={styles.profilePhone}>
           {user?.phone || 'No phone available'}
         </Text>
-        <Text style={styles.profileAddress}>
-          {getUserAddress()}
-        </Text>
-        
+        {loading && <Text style={{ color: '#999', marginTop: 8 }}>Refreshing...</Text>}
       </View>
     </View>
   );
@@ -185,7 +182,10 @@ const ProfileMenuItem: React.FC<{
         router.push('/orders');
         break;
       case 'Saved Addresses':
-        router.push('/address-selection');
+        router.push('/other/address-management');
+        break;
+      case 'Notifications':
+        router.push('/other/notifications');
         break;
       case 'Customer Support':
         router.push('/customer-support');
@@ -252,7 +252,7 @@ const ProfileStats: React.FC = () => {
   const [stats, setStats] = useState({
     ordersCount: 0,
     addressesCount: 0,
-    coinsCount: 150, // Default coins value
+ // Default coins value
   });
   const [loading, setLoading] = useState(true);
 
@@ -270,8 +270,7 @@ const ProfileStats: React.FC = () => {
       
       setStats({
         ordersCount,
-        addressesCount,
-        coinsCount: 150, // This could come from a rewards/points service
+        addressesCount, // This could come from a rewards/points service
       });
     } catch (error) {
       console.error('Error loading user stats:', error);
@@ -279,16 +278,19 @@ const ProfileStats: React.FC = () => {
       setStats({
         ordersCount: 0,
         addressesCount: 0,
-        coinsCount: 0,
       });
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => {
-    loadUserStats();
-  }, [loadUserStats]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadUserStats();
+      // Optionally, trigger user info/location refresh here if needed
+    }, [loadUserStats])
+  );
 
   // Refresh stats when screen comes into focus
   useFocusEffect(
@@ -310,24 +312,44 @@ const ProfileStats: React.FC = () => {
         <Text style={styles.statNumber}>{loading ? '...' : stats.addressesCount}</Text>
         <Text style={styles.statLabel}>Addresses</Text>
       </View>
-      
-      <View style={styles.statDivider} />
-      
-      <View style={styles.statItem}>
-        <Text style={styles.statNumber}>{loading ? '...' : stats.coinsCount}</Text>
-        <Text style={styles.statLabel}>Coins</Text>
-      </View>
     </View>
   );
 };
 
 // Main ProfileScreen Component
 const ProfileScreen: React.FC = () => {
+  const { user, updateUser } = useAuth();
+
+  // Fetch user details from backend on screen focus
+  useFocusEffect(
+    React.useCallback(() => {
+      let isActive = true;
+      const fetchUser = async () => {
+        try {
+          const response = await authService.getMe();
+          console.log('authService.getMe() response:', response);
+          const userData = (response && ((response as any).data || response.user)) || null;
+          if (response && response.success && userData && isActive) {
+            // Only update if user data is different
+            if (!user || user._id !== userData._id || user.email !== userData.email || user.updatedAt !== userData.updatedAt) {
+              updateUser(userData);
+            }
+          }
+        } catch (error) {
+          console.error('Failed to fetch user details:', error);
+        }
+      };
+      fetchUser();
+      return () => {
+        isActive = false;
+      };
+  }, [updateUser, user])
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <ProfileHeader />
-      
       <ScrollView 
         style={styles.content}
         showsVerticalScrollIndicator={false}
@@ -335,17 +357,11 @@ const ProfileScreen: React.FC = () => {
       >
         {/* Profile Card */}
         <ProfileCard />
-        
         {/* Profile Stats */}
         <ProfileStats />
-        
-        {/* Notification Testing */}
-        <NotificationTester title="Push Notifications" />
-        
         {/* Menu Items */}
         <View style={styles.menuContainer}>
           <Text style={styles.menuSectionTitle}>Account</Text>
-          
           <View style={styles.menuList}>
             {profileMenuData.map((item, index) => (
               <ProfileMenuItem
@@ -358,7 +374,6 @@ const ProfileScreen: React.FC = () => {
             ))}
           </View>
         </View>
-        
         {/* App Info */}
         <View style={styles.appInfo}>
           <Text style={styles.appInfoText}>Seja&apos;s Absolute Fresh</Text>

@@ -2,12 +2,12 @@ import { AntDesign, Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import {
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -46,26 +46,7 @@ const companyValues = [
 ];
 
 // Team members data
-const teamMembers = [
-  {
-    id: '1',
-    name: 'Seja Abraham',
-    position: 'Founder & CEO',
-    description: 'Passionate about bringing fresh, quality meat to every household.',
-  },
-  {
-    id: '2',
-    name: 'Prasad Chodagiri',
-    position: 'CTO',
-    description: 'Leading technology innovations for better customer experience.',
-  },
-  {
-    id: '3',
-    name: 'Sarah Johnson',
-    position: 'Quality Manager',
-    description: 'Ensuring every product meets our strict quality standards.',
-  },
-];
+
 
 interface ValueItemProps {
   title: string;
@@ -87,28 +68,9 @@ const ValueItem: React.FC<ValueItemProps> = ({ title, description, icon }) => {
   );
 };
 
-interface TeamMemberProps {
-  name: string;
-  position: string;
-  description: string;
-}
 
-const TeamMember: React.FC<TeamMemberProps> = ({ name, position, description }) => {
-  return (
-    <View style={styles.teamMember}>
-      <View style={styles.memberAvatar}>
-        <Text style={styles.memberInitials}>
-          {name.split(' ').map(n => n[0]).join('')}
-        </Text>
-      </View>
-      <View style={styles.memberInfo}>
-        <Text style={styles.memberName}>{name}</Text>
-        <Text style={styles.memberPosition}>{position}</Text>
-        <Text style={styles.memberDescription}>{description}</Text>
-      </View>
-    </View>
-  );
-};
+
+
 
 const AboutUsScreen: React.FC = () => {
   const router = useRouter();
@@ -196,20 +158,6 @@ const AboutUsScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* Team Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Meet Our Team</Text>
-          <View style={styles.teamList}>
-            {teamMembers.map((member) => (
-              <TeamMember
-                key={member.id}
-                name={member.name}
-                position={member.position}
-                description={member.description}
-              />
-            ))}
-          </View>
-        </View>
 
         {/* Statistics */}
         <View style={styles.section}>
@@ -237,8 +185,8 @@ const AboutUsScreen: React.FC = () => {
             Have questions or feedback? We&apos;d love to hear from you!
           </Text>
           <View style={styles.contactInfo}>
-            <Text style={styles.contactItem}>📧 info@sejasabsolutefresh.com</Text>
-            <Text style={styles.contactItem}>📞 +91 9876543210</Text>
+            <Text style={styles.contactItem}>📧 sejasabsolutefresh@gmail.com</Text>
+            <Text style={styles.contactItem}>📞 +91 9704883731</Text>
             <Text style={styles.contactItem}>📍 Kochi, Kerala, India</Text>
           </View>
         </View>

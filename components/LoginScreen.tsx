@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -12,15 +12,33 @@ import {
     View,
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
-import { authService } from '../services/authService';
+import { authService, getAuthSession } from '../services/authService';
 
 const RED_COLOR = '#D13635';
+
 
 const LoginScreen: React.FC = () => {
   const { login } = useAuth();
   const [emailOrPhone, setEmailOrPhone] = useState('');
   const [pin, setPin] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPin, setShowPin] = useState(false);
+
+  // On mount, check for existing session
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+  const sessionData = await getAuthSession();
+        if (sessionData && sessionData.token) {
+          // If session is valid, go to home
+          router.replace('/(tabs)');
+        }
+      } catch {
+        // Ignore and show login
+      }
+    };
+    checkSession();
+  }, []);
 
   // Validate email format
   const isValidEmail = (email: string): boolean => {
@@ -102,17 +120,13 @@ const LoginScreen: React.FC = () => {
     router.push('/auth/register');
   };
 
-  // Navigate to OTP login (fallback option)
-  const navigateToOTPLogin = () => {
-    router.push('/auth/otp-login' as any);
-  };
 
   // Navigate to forgot password
   const navigateToForgotPassword = () => {
     router.push('/auth/forgot-password' as any);
   };
 
-  const isFormValid = emailOrPhone.trim().length > 0 && pin.length >= 4 && getInputType() !== 'invalid';
+  const isFormValid = emailOrPhone.trim().length > 0 && pin.length === 6 && getInputType() !== 'invalid';
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
@@ -148,16 +162,27 @@ const LoginScreen: React.FC = () => {
       {/* PIN Input */}
       <View style={styles.inputGroup}>
         <Text style={styles.label}>PIN</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter your PIN"
-          placeholderTextColor="#888"
-          value={pin}
-          onChangeText={setPin}
-          secureTextEntry
-          keyboardType="numeric"
-          maxLength={6}
-        />
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <TextInput
+            style={[styles.input, { flex: 1 }]}
+            placeholder="Enter your PIN"
+            placeholderTextColor="#888"
+            value={pin}
+            onChangeText={setPin}
+            secureTextEntry={!showPin}
+            keyboardType="numeric"
+            maxLength={6}
+          />
+          <TouchableOpacity
+            onPress={() => setShowPin((prev) => !prev)}
+            style={{ marginLeft: 8, padding: 4 }}
+            accessibilityLabel={showPin ? 'Hide PIN' : 'Show PIN'}
+          >
+            <Text style={{ fontSize: 18 }}>
+              {showPin ? '👁️' : '👁️‍🗨️'}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Login Button */}
@@ -175,10 +200,6 @@ const LoginScreen: React.FC = () => {
 
       {/* Alternative Login Options */}
       <View style={styles.alternativeContainer}>
-        <TouchableOpacity onPress={navigateToOTPLogin}>
-          <Text style={styles.linkText}>Login with OTP instead</Text>
-        </TouchableOpacity>
-        
         <TouchableOpacity onPress={navigateToForgotPassword} style={styles.forgotPinButton}>
           <Text style={styles.linkText}>Forgot PIN?</Text>
         </TouchableOpacity>

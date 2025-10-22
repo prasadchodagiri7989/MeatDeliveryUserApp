@@ -15,7 +15,7 @@ const getApiUrl = () => {
     return `http://${apiHost}:${apiPort}/api`;
   } else {
     // Production mode - use production URL
-    return extra?.productionApiUrl || 'https://meat-delivery-backend-bowm.vercel.app/api';
+    return extra?.productionApiUrl || 'https://89.116.122.222/api';
   }
 };
 
@@ -93,13 +93,19 @@ export interface UnreadCountResponse {
 
 class NotificationService {
   private async getAuthHeaders() {
-    const token = await AsyncStorage.getItem('authToken');
-    if (!token) {
+    const sessionData = await AsyncStorage.getItem('authSession');
+    if (!sessionData) {
       throw new Error('No authentication token found. Please login again.');
+    }
+    const session = JSON.parse(sessionData);
+    const now = Date.now();
+    if (now > session.expiresAt) {
+      await AsyncStorage.removeItem('authSession');
+      throw new Error('Session expired. Please login again.');
     }
     return {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
+      'Authorization': `Bearer ${session.token}`,
     };
   }
 

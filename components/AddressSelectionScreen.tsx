@@ -2,13 +2,13 @@ import { AntDesign, Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Address, addressService } from '../services/addressService';
@@ -305,18 +305,7 @@ const AddressSelectionScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
 
-        {/* Order Summary */}
-        <View style={styles.summarySection}>
-          <Text style={styles.summaryTitle}>Order Summary</Text>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Total Amount</Text>
-            <Text style={styles.summaryValue}>₹{cartTotal}</Text>
-          </View>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Payment Method</Text>
-            <Text style={styles.paymentMethod}>Cash on Delivery</Text>
-          </View>
-        </View>
+        {/* Order Summary removed as per requirements */}
 
         {/* Special Instructions */}
         <View style={styles.instructionsSection}>
