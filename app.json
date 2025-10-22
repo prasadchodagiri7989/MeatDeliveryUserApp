@@ -9,7 +9,11 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.batman1428.MeatDeliveryUserApp",
+      "infoPlist": {
+        "NSUserTrackingUsageDescription": "This app uses notifications to keep you informed about your orders and offers."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -30,18 +34,9 @@
         "RECEIVE_BOOT_COMPLETED",
         "WAKE_LOCK",
         "com.google.android.c2dm.permission.RECEIVE",
-        "INTERNET",
-        "ACCESS_NETWORK_STATE",
-        "VIBRATE",
-        "RECEIVE_BOOT_COMPLETED",
-        "WAKE_LOCK",
-        "com.google.android.c2dm.permission.RECEIVE"
+        "NOTIFICATIONS"
       ],
       "blockedPermissions": [
-        "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION",
-        "CAMERA",
-        "RECORD_AUDIO",
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
         "CAMERA",
@@ -58,6 +53,7 @@
       [
         "expo-notifications",
         {
+          "icon": "./assets/images/notification-icon.png",
           "color": "#D13635",
           "defaultChannel": "default"
         }
