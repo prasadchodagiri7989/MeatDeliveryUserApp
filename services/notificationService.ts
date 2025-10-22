@@ -10,7 +10,7 @@ const getApiUrl = () => {
   
   if (__DEV__) {
     // Development mode - use local server
-    const apiHost = extra?.apiHost || '192.168.1.9';
+    const apiHost = extra?.apiHost || '89.116.122.222';
     const apiPort = extra?.apiPort || '5000';
     return `http://${apiHost}:${apiPort}/api`;
   } else {
