@@ -10,12 +10,12 @@ const getApiUrl = () => {
   
   if (__DEV__) {
     // Development mode - use local server
-    const apiHost = extra?.apiHost || '89.116.122.222';
+    const apiHost = extra?.apiHost || 'sejasfresh.cloud';
     const apiPort = extra?.apiPort || '5000';
     return `http://${apiHost}:${apiPort}/api`;
   } else {
     // Production mode - use production URL
-    return extra?.productionApiUrl || 'https://89.116.122.222/api';
+    return extra?.productionApiUrl || 'https://sejasfresh.cloud/api';
   }
 };
 

@@ -18,7 +18,7 @@ Edit `config/api.ts`:
 ```typescript
 // For local development (port 5000)
 development: {
-  API_HOST: '89.116.122.222',
+  API_HOST: 'sejasfresh.cloud',
   API_PORT: '5000',
 },
 

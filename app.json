@@ -80,9 +80,9 @@
         "projectId": "2ba16e37-acef-4bf5-a74b-ab54e880e43e"
       },
       "apiPort": "5000",
-      "apiHost": "89.116.122.222",
-      "productionApiUrl": "https://89.116.122.222/api",
-      "productionApiHost": "89.116.122.222"
+      "apiHost": "sejasfresh.cloud",
+      "productionApiUrl": "https://sejasfresh.cloud/api",
+      "productionApiHost": "sejasfresh.cloud"
     },
     "runtimeVersion": {
       "policy": "appVersion"
