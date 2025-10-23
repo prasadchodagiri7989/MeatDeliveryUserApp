@@ -126,7 +126,7 @@ const OrderSuccessScreen: React.FC<OrderSuccessScreenProps> = ({ order: propOrde
                   <Image 
                     source={{ uri: item.product.images[0].url }} 
                     style={styles.itemImage}
-                    defaultSource={require('../assets/images/react-logo.png')}
+                    defaultSource={require('../assets/images/sejas-logo.png')}
                   />
                 ) : (
                   <View style={styles.placeholderImage}>
