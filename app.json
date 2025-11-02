@@ -1,8 +1,8 @@
 {
   "expo": {
-  "name": "Sejas Fresh",
+    "name": "Sejas Fresh",
     "slug": "MeatDeliveryUserApp",
-  "version": "1.0.0",
+    "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "meatdeliveryuserapp",
@@ -11,6 +11,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.batman1428.MeatDeliveryUserApp",
+      "buildNumber": "1",
       "infoPlist": {
         "NSUserTrackingUsageDescription": "This app uses notifications to keep you informed about your orders and offers."
       }

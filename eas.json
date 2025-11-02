@@ -10,6 +10,9 @@
       "android": {
         "buildType": "apk",
         "gradleCommand": ":app:assembleDebug"
+      },
+      "ios": {
+        "distribution": "internal"
       }
     },
     "preview": {
@@ -17,6 +20,9 @@
       "android": {
         "buildType": "apk",
         "gradleCommand": ":app:assembleRelease"
+      },
+      "ios": {
+        "simulator": true
       },
       "env": {
         "NODE_ENV": "production"
@@ -27,6 +33,9 @@
         "buildType": "apk",
         "gradleCommand": ":app:assembleRelease",
         "image": "latest"
+      },
+      "ios": {
+        "distribution": "store"
       },
       "env": {
         "NODE_ENV": "production"
