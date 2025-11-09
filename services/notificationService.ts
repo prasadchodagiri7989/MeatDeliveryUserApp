@@ -1,4 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
@@ -93,19 +92,14 @@ export interface UnreadCountResponse {
 
 class NotificationService {
   private async getAuthHeaders() {
-    const sessionData = await AsyncStorage.getItem('authSession');
-    if (!sessionData) {
+    // Use authService token cache to avoid reading AsyncStorage every time
+    const token = await import('./authService').then(m => m.authService.getToken());
+    if (!token) {
       throw new Error('No authentication token found. Please login again.');
-    }
-    const session = JSON.parse(sessionData);
-    const now = Date.now();
-    if (now > session.expiresAt) {
-      await AsyncStorage.removeItem('authSession');
-      throw new Error('Session expired. Please login again.');
     }
     return {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${session.token}`,
+      'Authorization': `Bearer ${token}`,
     };
   }
 

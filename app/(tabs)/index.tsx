@@ -1,19 +1,18 @@
 
 import BannerCarousel from "@/components/BannerCarousel";
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Image,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Image,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import BannerSection from "../../components/BannerSection";
@@ -35,37 +34,38 @@ export default function HomeScreen() {
 
     // Fetch all services on app reload/mount
   useEffect(() => {
+    // Fetch non-critical services in parallel without blocking UI
     const fetchAllServices = async () => {
       try {
-        // Addresses
-        await addressService.getSavedAddresses?.();
-        // Products
-        await productService.getAllProducts?.();
-        // Cart
-        if (typeof import('../../services/cartService').then === 'function') {
-          const { cartService } = await import('../../services/cartService');
-          await cartService.getCart?.();
-        }
-        // Orders
-        if (typeof import('../../services/orderService').then === 'function') {
-          const { orderService } = await import('../../services/orderService');
-          await orderService.getUserOrders?.();
-        }
-        // Notifications
-        if (typeof import('../../services/notificationService').then === 'function') {
-          const { notificationService } = await import('../../services/notificationService');
-          await notificationService.getNotifications?.();
-        }
-        // Coupons
-        if (typeof import('../../services/couponService').then === 'function') {
-          const { couponService } = await import('../../services/couponService');
-          await couponService.getActiveCoupons?.();
-        }
-        // User profile
-        if (typeof import('../../services/authService').then === 'function') {
-          const { authService } = await import('../../services/authService');
-          await authService.getMe?.();
-        }
+        const imports = await Promise.allSettled([
+          import('../../services/addressService'),
+          import('../../services/productService'),
+          import('../../services/cartService'),
+          import('../../services/orderService'),
+          import('../../services/notificationService'),
+          import('../../services/couponService'),
+          import('../../services/authService'),
+        ]);
+
+        // Kick off available services but don't await each to avoid blocking
+        imports.forEach((imp) => {
+          if (imp.status === 'fulfilled') {
+            const mod: any = (imp as any).value;
+            try {
+              // Call common exported methods if present
+              if (mod.addressService?.getSavedAddresses) mod.addressService.getSavedAddresses();
+              if (mod.productService?.getAllProducts) mod.productService.getAllProducts();
+              if (mod.cartService?.getCart) mod.cartService.getCart();
+              if (mod.orderService?.getUserOrders) mod.orderService.getUserOrders();
+              if (mod.notificationService?.getNotifications) mod.notificationService.getNotifications();
+              if (mod.couponService?.getActiveCoupons) mod.couponService.getActiveCoupons();
+              if (mod.authService?.getMe) mod.authService.getMe();
+            } catch (e) {
+              // Individual module invocation failed; log and continue
+              console.debug('Non-critical service invocation failed:', e);
+            }
+          }
+        });
       } catch (error) {
         console.error('Error fetching all services on reload:', error);
       }
@@ -77,7 +77,8 @@ export default function HomeScreen() {
     const fetchAllAddresses = async () => {
       try {
         const API_BASE_URL = getCurrentConfig().API_URL;
-        const token = await AsyncStorage.getItem('authToken');
+        const { authService } = await import('../../services/authService');
+        const token = await authService.getToken();
         const headers = {
           'Content-Type': 'application/json',
           ...(token ? { 'Authorization': `Bearer ${token}` } : {})

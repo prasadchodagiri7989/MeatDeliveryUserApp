@@ -3,16 +3,17 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useFocusEffect } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Image,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Image,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuth } from '../contexts/AuthContext';
 import { useCart } from '../contexts/CartContext';
 import { addressService } from '../services/addressService';
 import { Cart, CartItem, cartService } from '../services/cartService';
@@ -26,6 +27,7 @@ const GREEN_COLOR = '#4CAF50';
 // Delivery Location Component
 const DeliveryLocation: React.FC = () => {
   const [userLocation, setUserLocation] = useState<string>('Fetching location...');
+  const { user } = useAuth();
 
   useEffect(() => {
     loadUserLocation();
@@ -47,31 +49,57 @@ const DeliveryLocation: React.FC = () => {
         }
       }
 
-      // Fallback to local storage user data if no backend address
-      const userData = await AsyncStorage.getItem('userData');
-      if (userData) {
-        const user = JSON.parse(userData);
-        
-        // Handle address object or string from user data
-        let addressString = '';
-        
-        if (user.address) {
-          if (typeof user.address === 'object') {
-            const { city, zipCode } = user.address;
+      // If we have a user in context, use that (fast, avoids AsyncStorage)
+      if (user) {
+        try {
+          let addressString = '';
+          if (user.address) {
+            if (typeof user.address === 'object') {
+              const { city, zipCode } = user.address as any;
+              if (city && zipCode) addressString = `${city}, ${zipCode}`;
+              else if (city) addressString = city;
+              else if (zipCode) addressString = zipCode;
+            } else if (typeof user.address === 'string') {
+              addressString = user.address;
+            }
+          } else if ((user as any).location && typeof (user as any).location === 'object') {
+            const { city, zipCode } = (user as any).location;
             if (city && zipCode) addressString = `${city}, ${zipCode}`;
             else if (city) addressString = city;
             else if (zipCode) addressString = zipCode;
           }
-        } else if (user.location && typeof user.location === 'object') {
-          const { city, zipCode } = user.location;
-          if (city && zipCode) addressString = `${city}, ${zipCode}`;
-          else if (city) addressString = city;
-          else if (zipCode) addressString = zipCode;
+
+          setUserLocation(addressString || 'Select Location');
+          return;
+        } catch (err) {
+          console.error('Error extracting address from user context:', err);
         }
-        setUserLocation(addressString || 'Select Location');
-      } else {
-        setUserLocation('Select Location');
       }
+
+      // Fallback: read cached userData from AsyncStorage (non-blocking path already executed)
+      try {
+        const userData = await AsyncStorage.getItem('userData');
+        if (userData) {
+          const parsed = JSON.parse(userData);
+          let addressString = '';
+          if (parsed.address) {
+            if (typeof parsed.address === 'object') {
+              const { city, zipCode } = parsed.address;
+              if (city && zipCode) addressString = `${city}, ${zipCode}`;
+              else if (city) addressString = city;
+              else if (zipCode) addressString = zipCode;
+            } else if (typeof parsed.address === 'string') {
+              addressString = parsed.address;
+            }
+          }
+          setUserLocation(addressString || 'Select Location');
+          return;
+        }
+      } catch (err) {
+        console.error('Fallback: error reading userData from AsyncStorage:', err);
+      }
+
+      setUserLocation('Select Location');
     } catch (error) {
       console.error('Error loading user location:', error);
       
@@ -662,7 +690,8 @@ const CartPage: React.FC = () => {
   const handleProceed = () => {
     if (cart && cart.totalAmount > 0) {
       // Navigate to address selection screen
-      router.push('/address-selection');
+      // Cast to any to satisfy expo-router's strict route typing in this project
+      router.push('/address-selection' as any);
     }
   };
 

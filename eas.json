@@ -1,6 +1,6 @@
 {
   "cli": {
-    "version": ">= 16.19.3",
+    "version": ">= 6.0.0",
     "appVersionSource": "local"
   },
   "build": {
@@ -29,28 +29,26 @@
       }
     },
     "production": {
+      "extends": "preview",
       "android": {
-        "buildType": "apk",
-        "gradleCommand": ":app:assembleRelease",
+        "buildType": "app-bundle",
+        "gradleCommand": ":app:bundleRelease",
         "image": "latest"
       },
       "ios": {
         "distribution": "store"
       },
+      "channel": "production",
       "env": {
         "NODE_ENV": "production"
-      },
-      "channel": "production"
-    },
-    "production-aab": {
-      "extends": "production",
-      "android": {
-        "buildType": "app-bundle",
-        "gradleCommand": ":app:bundleRelease"
       }
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "android": {
+        "track": "production"
+      }
+    }
   }
 }

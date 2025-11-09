@@ -31,24 +31,37 @@ interface SessionData {
   userId: string;
 }
 
-// Helper function to get auth token with expiration check
+// In-memory cache for session to avoid repeated AsyncStorage reads
+let cachedSession: SessionData | null = null;
+
 const getAuthToken = async (): Promise<string | null> => {
   try {
+    const now = Date.now();
+
+    // If we have a cached session that's still valid, return it
+    if (cachedSession && now <= cachedSession.expiresAt) {
+      return cachedSession.token;
+    }
+
+    // Fallback to AsyncStorage if cache is empty or expired
     const sessionData = await AsyncStorage.getItem('authSession');
     if (!sessionData) {
+      cachedSession = null;
       return null;
     }
 
     const session: SessionData = JSON.parse(sessionData);
-    const now = Date.now();
 
-    // Check if session has expired
     if (now > session.expiresAt) {
+      // Session expired -> clear
       console.log('Session expired, clearing auth data');
       await removeAuthSession();
+      cachedSession = null;
       return null;
     }
 
+    // Update cache and return token
+    cachedSession = session;
     return session.token;
   } catch (error) {
     console.error('Error getting auth token:', error);
@@ -67,6 +80,8 @@ const setAuthToken = async (token: string, userId: string): Promise<void> => {
     };
     
     await AsyncStorage.setItem('authSession', JSON.stringify(sessionData));
+    // Update in-memory cache immediately
+    cachedSession = sessionData;
     console.log(`Session set for user ${userId}, expires at ${new Date(expiresAt).toISOString()}`);
   } catch (error) {
     console.error('Error setting auth token:', error);
@@ -78,6 +93,8 @@ const removeAuthSession = async (): Promise<void> => {
   try {
     await AsyncStorage.removeItem('authSession');
     await AsyncStorage.removeItem('authToken'); // Remove legacy token if exists
+    // Clear in-memory cache
+    cachedSession = null;
   } catch (error) {
     console.error('Error removing auth session:', error);
   }
@@ -86,14 +103,17 @@ const removeAuthSession = async (): Promise<void> => {
 // Helper function to check if session is valid
 export const isSessionValid = async (): Promise<boolean> => {
   try {
-    const sessionData = await AsyncStorage.getItem('authSession');
-    if (!sessionData) {
-      return false;
-    }
-
-    const session: SessionData = JSON.parse(sessionData);
     const now = Date.now();
 
+    if (cachedSession) {
+      return now <= cachedSession.expiresAt;
+    }
+
+    const sessionData = await AsyncStorage.getItem('authSession');
+    if (!sessionData) return false;
+    const session: SessionData = JSON.parse(sessionData);
+    // Populate cache
+    cachedSession = session;
     return now <= session.expiresAt;
   } catch (error) {
     console.error('Error checking session validity:', error);

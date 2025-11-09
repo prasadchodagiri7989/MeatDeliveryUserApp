@@ -1,14 +1,14 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getCurrentConfig } from '../config/api';
+import { authService } from './authService';
 
 const API_BASE_URL = getCurrentConfig().API_URL;
 
-// Helper function to get auth token
+// Use authService token helper (cached in-memory) to avoid AsyncStorage on every call
 const getAuthToken = async (): Promise<string | null> => {
   try {
-    return await AsyncStorage.getItem('authToken');
+    return await authService.getToken();
   } catch (error) {
-    console.error('Error getting auth token:', error);
+    console.error('Error getting auth token from authService:', error);
     return null;
   }
 };

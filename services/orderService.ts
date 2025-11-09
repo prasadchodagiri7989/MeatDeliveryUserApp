@@ -1,26 +1,16 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getCurrentConfig } from '../config/api';
+import { authService } from './authService';
 import { cartService } from './cartService';
 
 const API_BASE_URL = getCurrentConfig().API_URL;
 
-// Helper function to get auth token from session (with expiration check)
+// Use authService token getter (uses in-memory cache)
 const getAuthToken = async (): Promise<string | null> => {
   try {
-    const sessionData = await AsyncStorage.getItem('authSession');
-    if (!sessionData) {
-      return null;
-    }
-    const session = JSON.parse(sessionData);
-    const now = Date.now();
-    if (now > session.expiresAt) {
-      // Session expired, clear session
-      await AsyncStorage.removeItem('authSession');
-      return null;
-    }
-    return session.token;
+    return await authService.getToken();
   } catch (error) {
-    console.error('Error getting auth token:', error);
+    console.error('Error getting auth token from authService:', error);
     return null;
   }
 };

@@ -62,58 +62,80 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     checkAuthStatus();
   }, []);
-
   const checkAuthStatus = async () => {
     try {
+      // First try to load cached user so UI can render immediately
+      try {
+        const cached = await AsyncStorage.getItem('userData');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          setUser(parsed);
+        }
+      } catch (err) {
+        console.error('Error reading cached userData:', err);
+      }
+
+      // Unblock UI while we validate the session in background
+      setIsLoading(false);
+
+      // Validate token/session in background. If invalid, clear user data.
       const isAuth = await authService.isAuthenticated();
-      
       if (isAuth) {
-        // Try to validate token by calling the API
         try {
           const response = await authService.getMe();
-          if (response.success) {
-            const user = response.user;
-            if (user) {
-              setUser(user);
-              // Save to AsyncStorage for next time
-              await AsyncStorage.setItem('userData', JSON.stringify(user));
-            }
+          if (response.success && response.user) {
+            const fetchedUser = response.user;
+            setUser(fetchedUser);
+            // Persist updated user data, but don't block UI
+            AsyncStorage.setItem('userData', JSON.stringify(fetchedUser)).catch((e: any) =>
+              console.error('Failed to persist userData:', e)
+            );
           } else {
-            // Token is invalid, clear it
+            // Token invalid -> logout
             await authService.logout();
             await AsyncStorage.removeItem('userData');
+            setUser(null);
           }
         } catch (error) {
           console.error('Failed to validate token:', error);
-          // Token is invalid or expired, clear it
+          // Token invalid or request failed -> logout
           await authService.logout();
           await AsyncStorage.removeItem('userData');
+          setUser(null);
         }
       } else {
-        // No valid session, clear any cached user data
+        // No valid session, clear cached user data
         await AsyncStorage.removeItem('userData');
+        setUser(null);
       }
     } catch (error) {
       console.error('Auth check error:', error);
       // On any error, clear authentication state
-      await authService.logout();
+      try {
+        await authService.logout();
+      } catch (e) {
+        console.error('Error during logout after auth check failure:', e);
+      }
       await AsyncStorage.removeItem('userData');
-    } finally {
+      setUser(null);
       setIsLoading(false);
     }
   };
 
   const login = async (userData: User, token: string) => {
     try {
-      // Save user data in AsyncStorage
-      await AsyncStorage.setItem('userData', JSON.stringify(userData));
-      
-      // Token is already saved by authService.verifyOTP method
-      // Set the user data in context
+      // Optimistic: set user in context immediately so UI can navigate fast
       setUser(userData);
+
+      // Persist user data to AsyncStorage but don't block UI navigation
+      AsyncStorage.setItem('userData', JSON.stringify(userData)).catch((e: any) =>
+        console.error('Error saving user data:', e)
+      );
+
+      // Note: token/session should already be saved by authService methods
     } catch (error) {
-      console.error('Error saving user data:', error);
-      // Still set user data even if storage fails
+      console.error('Error saving user data (unexpected):', error);
+      // Ensure user is set even if persistence failed
       setUser(userData);
     }
   };

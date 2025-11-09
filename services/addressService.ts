@@ -1,5 +1,5 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getCurrentConfig } from '../config/api';
+import { authService } from './authService';
 
 const API_BASE_URL = getCurrentConfig().API_URL;
 
@@ -44,32 +44,14 @@ export interface AddressResponse {
 class AddressService {
   private async getAuthHeaders() {
     try {
-      let token: string | null = null;
-      
-      // Try to get session token first (for persistent auth)
-      const sessionData = await AsyncStorage.getItem('authSession');
-      if (sessionData) {
-        const session = JSON.parse(sessionData);
-        const now = Date.now();
-        
-        // Check if session is still valid
-        if (now <= session.expiresAt) {
-          token = session.token;
-        }
-      }
-      
-      // Fallback to legacy token storage
-      if (!token) {
-        token = await AsyncStorage.getItem('authToken');
-      }
+      // Use cached token from authService when available
+      const token = await authService.getToken();
       
       const headers: Record<string, string> = {
         'Content-Type': 'application/json'
       };
       
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
+      if (token) headers['Authorization'] = `Bearer ${token}`;
       
       return headers;
     } catch (error) {

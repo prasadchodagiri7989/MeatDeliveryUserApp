@@ -3,8 +3,8 @@
  * Handles persistent authentication sessions and navigation
  */
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
+import { getAuthSession } from '../services/authService';
 
 export interface SessionInfo {
   isAuthenticated: boolean;
@@ -18,9 +18,8 @@ export interface SessionInfo {
  */
 export const getSessionInfo = async (): Promise<SessionInfo> => {
   try {
-    const sessionData = await AsyncStorage.getItem('authSession');
-    
-    if (!sessionData) {
+    const session = await getAuthSession();
+    if (!session) {
       return {
         isAuthenticated: false,
         expiresAt: null,
@@ -28,8 +27,6 @@ export const getSessionInfo = async (): Promise<SessionInfo> => {
         daysRemaining: null
       };
     }
-
-    const session = JSON.parse(sessionData);
     const now = Date.now();
     const isValid = now <= session.expiresAt;
     const daysRemaining = isValid ? Math.ceil((session.expiresAt - now) / (24 * 60 * 60 * 1000)) : 0;
@@ -80,7 +77,13 @@ export const cleanupExpiredSessions = async () => {
     
     if (!sessionInfo.isAuthenticated && sessionInfo.expiresAt) {
       // Session has expired, clean up
-      await AsyncStorage.multiRemove(['authSession', 'userData']);
+      try {
+        // Use dynamic import to avoid potential cycles
+        const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
+        await AsyncStorage.multiRemove(['authSession', 'userData']);
+      } catch (e) {
+        console.error('Failed to remove expired session data from storage:', e);
+      }
       console.log('Cleaned up expired session');
     }
   } catch (error) {

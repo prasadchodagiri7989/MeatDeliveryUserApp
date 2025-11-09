@@ -1,5 +1,5 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getCurrentConfig } from '../config/api';
+import { authService } from './authService';
 
 const API_BASE_URL = getCurrentConfig().API_URL;
 
@@ -31,9 +31,9 @@ export interface AppliedCoupon {
 class CouponService {
   private async getAuthToken(): Promise<string | null> {
     try {
-      return await AsyncStorage.getItem('authToken');
+      return await authService.getToken();
     } catch (error) {
-      console.error('Error getting auth token:', error);
+      console.error('Error getting auth token from authService:', error);
       return null;
     }
   }
