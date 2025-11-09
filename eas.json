@@ -29,7 +29,6 @@
       }
     },
     "production": {
-      "extends": "preview",
       "android": {
         "buildType": "app-bundle",
         "gradleCommand": ":app:bundleRelease",
@@ -38,10 +37,10 @@
       "ios": {
         "distribution": "store"
       },
-      "channel": "production",
       "env": {
         "NODE_ENV": "production"
-      }
+      },
+      "channel": "production"
     }
   },
   "submit": {
